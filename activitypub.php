@@ -31,6 +31,7 @@
 	}
 	
 	function deactivate_tasks() {
+		global $wp_rewrite;
 		$wp_rewrite->flush_rules();
 		return;
 	}
@@ -52,7 +53,7 @@
 	function rewrite_init() {
 		// set up some nicer rewrite urls
 		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/act/?$', 'index.php?rest_route=/ap/v1/actor&acct=$matches[1]', 'top');
-		add_rewrite_rule('^inbox$', 'index.php?rest_route=/ap/v1/actor/inbox', 'top');
+		add_rewrite_rule('^inbox/?$', 'index.php?rest_route=/ap/v1/inbox', 'top');
 		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)$', 'index.php?author_name=$matches[1]', 'top');
 		add_rewrite_rule('^\.well-known/([a-zA-Z0-9\-\?\=\@\%\.]+)$', 'index.php?rest_route=/ap/v1/$matches[1]', 'top');
 	}
@@ -68,6 +69,39 @@
 	}
 	add_action('init', 'post_types_init');
 	
+	function redirect_to_actor() {
+		$req = $_SERVER['REQUEST_URI'];
+		preg_match('/\/u\/@([a-zA-Z0-9\-]+)\/?/', $req, $matches1);
+		preg_match('/\/author\/([a-zA-Z0-9\-]+)\/?/', $req, $matches2);
+		if ((count($matches1) > 0 || count($matches2) > 0) && in_array('application/activity+json', explode(",", getallheaders()['Accept']))) {
+			header('Content-type: application/activity+json');
+			if (count($matches1) > 0) {
+				$acct = $matches1[1];
+			} elseif (count($matches2) > 0) {
+				$acct = $matches2[1];
+			}
+			$user = get_user_by('slug', $acct);
+			// remove all the newlines characters from the public key and replace with \n for json
+			$safe_key = preg_replace('/\n/', '\n', trim(get_user_meta($user->ID, 'pubkey', true)));
+			// echo the composited actor json object
+			echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "type": "Person", "preferredUsername": "'.$user->user_login.'", "inbox": "'.get_bloginfo('url').'/inbox", "publicKey": { "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'#main-key", "owner": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "publicKeyPem": "'.$safe_key.'"}}';
+			die(1);
+		} elseif(is_author()) {
+			echo "<!-- ??? -->";
+		}
+	}
+	add_action('wp_headers', 'redirect_to_actor');
+	
+	function add_head_links() {
+		if (is_author()) {
+			$curauth = (get_query_var('author_name')) ? get_user_by('slug', get_query_var('author_name')) : get_userdata(get_query_var('author'));
+			?>
+			<link rel="alternate" type="application/activity+json" href="<?= get_bloginfo('url'); ?>/wp-json/ap/v1/actor?acct=cmho" />
+			<?php
+		}
+	}
+	add_action('wp_head', 'add_head_links');
+	
 	function get_webfinger() {
 		// returns the 'webfinger' for an account, aka the hook for federation
 		header('Content-type: application/json');
@@ -80,7 +114,7 @@
 			// check if user exists
 			if ($user) {
 				// if so, return a webfinger with the user info for federation + following
-				echo '{"subject": "acct:'.$user->user_login.'@'.parse_url(get_bloginfo('url'))['host'].'", "aliases": ["'.get_bloginfo('url').'/u/@'.$user->user_login.'", "'.get_bloginfo('url').'/wp-json/ap/v1/actor?acct='.$user->user_login.'"], "links": [{"rel": "https://webfinger.net/rel/profile-page", "type": "text/html", "href": "'.get_bloginfo('url').'/u/@'.$user->user_login.'"}, {"rel": "https://webfinger.net/rel/avatar/", "type": "image/jpeg", "href": "'.get_avatar_url($user->ID).'"}, {"rel": "self", "type": "application/activity+json", "href": "'.get_bloginfo('url').'/wp-json/ap/v1/actor?acct='.$user->user_login.'"}]}';
+				echo '{"subject": "acct:'.$user->user_login.'@'.parse_url(get_bloginfo('url'))['host'].'", "links": [{"rel": "https://webfinger.net/rel/avatar/", "type": "image/jpeg", "href": "'.get_avatar_url($user->ID).'"}, {"rel": "self", "type": "application/activity+json", "href": "'.get_bloginfo('url').'/u/@'.$user->user_login.'"}]}';
 			}
 		}
 		die(1);
@@ -110,17 +144,57 @@
 		$headers = $sig[1];
 		$signature = base64_decode($sig[2]);
 		
-		// if it's a follow request, process it
+		// do some security thing
 		
-		// check if it comes from a blocked domain; if so, deny it
-		
-		// otherwise, add user account and accept notice
-		
-		// if it's an unfollow request, process it
-		
-		// delete user from database
+		$type = $_POST['type'];
+		$a = $_POST['actor'];
+		if ($a) {
+			$act = get_actor($_POST['actor']);
+			$inbox  = $act['inbox'];
+			$username = $act['preferredUsername'].'@'.parse_url($_POST['id'])['host'];
+			preg_match('\/\@([a-zA-Z0-9\-]+)/?$', $_POST['object'], $matches);
+			$following = $matches[1];
+			header('Content-type: application/activity+json');
+			if ($type == 'Follow') {
+				// if it's a follow request, process it
+				// check if it comes from a blocked domain; if so, deny it
+				$bd = get_posts(array(
+					'post_type' => 'domain_block',
+					'posts_per_page' => -1,
+					'post_name' => str_replace('.', '-', parse_url($_POST['id'])['host'])
+				));
+				if (count($bd) > 0) {
+					$reject = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_bloginfo('url').'/u/@'.$following.'", "type": "Reject", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": "'.$act['id'].'"}';
+					echo $reject;
+					die(1);
+					return;
+				}
+				// otherwise, add user account and accept notice
+				$user_check = get_user_by('username', $username);
+				if (!$user_check) {
+					$u = wp_create_user($username, serialize(bin2hex(random_bytes(16))));
+					update_user_meta($u, 'inbox', $inbox);
+					update_user_meta($u, 'domain', parse_url($_POST['id'])['host']);
+				}
+				$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_bloginfo('url').'/u/@'.$following.'", "type": "Accept", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": "'.$act['id'].'"}';
+				echo $accept;
+			} elseif ($type == 'Unfollow') {
+				// if it's an unfollow request, process it
+				$user = get_user_by('username', $username);
+				wp_delete_user($user->ID);
+				// delete user from database
+			}
+		}
 		
 		die(1);
+	}
+	
+	function get_actor($url) {
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		$result = curl_exec($ch);
+		curl_close($ch);
+		return json_decode($result);
 	}
 
 	function rest_api_stuff() {
