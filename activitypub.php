@@ -70,33 +70,37 @@
 	add_action('init', 'post_types_init');
 	
 	function redirect_to_actor() {
+		// get the url that was requested
 		$req = $_SERVER['REQUEST_URI'];
-		preg_match('/\/u\/@([a-zA-Z0-9\-]+)\/?/', $req, $matches1);
-		preg_match('/\/author\/([a-zA-Z0-9\-]+)\/?/', $req, $matches2);
+		// parse it and see if it's an author url by our schema
+		preg_match('/\/u\/@([a-zA-Z0-9\-]+)\/?/$', $req, $matches1);
+		preg_match('/\/author\/([a-zA-Z0-9\-]+)\/?/$', $req, $matches2);
 		if ((count($matches1) > 0 || count($matches2) > 0) && in_array('application/activity+json', explode(",", getallheaders()['Accept']))) {
+			// if it's an author and the request asked for application/activity+json format, return the actor
 			header('Content-type: application/activity+json');
 			if (count($matches1) > 0) {
 				$acct = $matches1[1];
 			} elseif (count($matches2) > 0) {
 				$acct = $matches2[1];
 			}
+			// get the username and then retrieve the correct user from the database
 			$user = get_user_by('slug', $acct);
 			// remove all the newlines characters from the public key and replace with \n for json
 			$safe_key = preg_replace('/\n/', '\n', trim(get_user_meta($user->ID, 'pubkey', true)));
 			// echo the composited actor json object
-			echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "type": "Person", "preferredUsername": "'.$user->user_login.'", "inbox": "'.get_bloginfo('url').'/inbox", "publicKey": { "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'#main-key", "owner": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "publicKeyPem": "'.$safe_key.'"}}';
+			echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "type": "Person", "preferredUsername": "'.$user->user_login.'", "inbox": "'.get_bloginfo('url').'/inbox", "icon": {"type": "Image", "mediaType": "image/jpeg", "url": "'.get_avatar_url($user->ID).'"}, "summary": "'.get_user_meta($user->ID, 'description').'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'#main-key", "owner": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "publicKeyPem": "'.$safe_key.'"}}';
+			// close request
 			die(1);
-		} elseif(is_author()) {
-			echo "<!-- ??? -->";
 		}
 	}
 	add_action('wp_headers', 'redirect_to_actor');
 	
 	function add_head_links() {
 		if (is_author()) {
+			// if this is an author page, display the activity+json version as an alt link
 			$curauth = (get_query_var('author_name')) ? get_user_by('slug', get_query_var('author_name')) : get_userdata(get_query_var('author'));
 			?>
-			<link rel="alternate" type="application/activity+json" href="<?= get_bloginfo('url'); ?>/wp-json/ap/v1/actor?acct=cmho" />
+			<link rel="alternate" type="application/activity+json" href="<?= get_bloginfo('url'); ?>/u/@<?= $curauth; ?>" />
 			<?php
 		}
 	}
@@ -114,7 +118,7 @@
 			// check if user exists
 			if ($user) {
 				// if so, return a webfinger with the user info for federation + following
-				echo '{"subject": "acct:'.$user->user_login.'@'.parse_url(get_bloginfo('url'))['host'].'", "links": [{"rel": "https://webfinger.net/rel/avatar/", "type": "image/jpeg", "href": "'.get_avatar_url($user->ID).'"}, {"rel": "self", "type": "application/activity+json", "href": "'.get_bloginfo('url').'/u/@'.$user->user_login.'"}]}';
+				echo '{"subject": "acct:'.$user->user_login.'@'.parse_url(get_bloginfo('url'))['host'].'", "links": [{"rel": "self", "type": "application/activity+json", "href": "'.get_bloginfo('url').'/u/@'.$user->user_login.'"}]}';
 			}
 		}
 		die(1);
@@ -135,6 +139,19 @@
 		die(1);
 	}
 	
+	function get_actor($url) {
+		// make request for actor object in json format, convert to php array
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+	    'Accept: application/activity+json'
+		));
+		$result = curl_exec($ch);
+		curl_close($ch);
+		return json_decode($result);
+	}
+	
 	function get_inbox() {
 		// we pretty much only use the inbox to get follow requests and accept them
 		$h = getallheaders();
@@ -146,38 +163,48 @@
 		
 		// do some security thing
 		
-		$type = $_POST['type'];
-		$a = $_POST['actor'];
+		// get actor contents
+		$entityBody = json_decode(file_get_contents('php://input'));
+		$type = $entityBody->type;
+		$a = $entityBody->actor;
 		if ($a) {
-			$act = get_actor($_POST['actor']);
-			$inbox  = $act['inbox'];
-			$username = $act['preferredUsername'].'@'.parse_url($_POST['id'])['host'];
-			preg_match('\/\@([a-zA-Z0-9\-]+)/?$', $_POST['object'], $matches);
-			$following = $matches[1];
-			header('Content-type: application/activity+json');
-			if ($type == 'Follow') {
-				// if it's a follow request, process it
-				// check if it comes from a blocked domain; if so, deny it
-				$bd = get_posts(array(
-					'post_type' => 'domain_block',
-					'posts_per_page' => -1,
-					'post_name' => str_replace('.', '-', parse_url($_POST['id'])['host'])
-				));
-				if (count($bd) > 0) {
-					$reject = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_bloginfo('url').'/u/@'.$following.'", "type": "Reject", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": "'.$act['id'].'"}';
-					echo $reject;
-					die(1);
-					return;
+			$act = get_actor($a);
+			$inbox  = $act->inbox;
+			$username = $act->preferredUsername.'@'.parse_url($entityBody->id)['host'];
+			$matches;
+			$followobj = (string)$entityBody->object;
+			echo $followobj;
+			preg_match('\/u/\@([a-zA-Z0-9\-]+)/?$', $followobj, $matches);
+			print_r($matches);
+			die(1);
+			if (count($matches) > 0) {
+				// check if there's an account by that name
+				$following = $matches[1];
+				header('Content-type: application/activity+json');
+				if ($type == 'Follow') {
+					// if it's a follow request, process it
+					// check if it comes from a blocked domain; if so, deny it
+					$bd = get_posts(array(
+						'post_type' => 'domain_block',
+						'posts_per_page' => -1,
+						'post_name' => str_replace('.', '-', parse_url($entityBody->id)['host'])
+					));
+					if (count($bd) > 0) {
+						$reject = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_bloginfo('url').'/u/@'.$following.'", "type": "Reject", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": "'.$act->id.'"}';
+						echo $reject;
+						die(1);
+						return;
+					}
+					// otherwise, add user account and return accept notice
+					$user_check = get_user_by('username', $username);
+					if (!$user_check) {
+						$u = wp_create_user($username, serialize(bin2hex(random_bytes(16))));
+						update_user_meta($u, 'inbox', $inbox);
+						update_user_meta($u, 'domain', parse_url($entityBody->id)['host']);
+					}
+					$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_bloginfo('url').'/u/@'.$following.'", "type": "Accept", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": "'.$act->id.'"}';
+					echo $accept;
 				}
-				// otherwise, add user account and accept notice
-				$user_check = get_user_by('username', $username);
-				if (!$user_check) {
-					$u = wp_create_user($username, serialize(bin2hex(random_bytes(16))));
-					update_user_meta($u, 'inbox', $inbox);
-					update_user_meta($u, 'domain', parse_url($_POST['id'])['host']);
-				}
-				$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_bloginfo('url').'/u/@'.$following.'", "type": "Accept", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": "'.$act['id'].'"}';
-				echo $accept;
 			} elseif ($type == 'Unfollow') {
 				// if it's an unfollow request, process it
 				$user = get_user_by('username', $username);
@@ -187,14 +214,6 @@
 		}
 		
 		die(1);
-	}
-	
-	function get_actor($url) {
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $url);
-		$result = curl_exec($ch);
-		curl_close($ch);
-		return json_decode($result);
 	}
 
 	function rest_api_stuff() {
@@ -210,7 +229,7 @@
 		));
 		
 		register_rest_route('ap/v1', '/inbox', array(
-			'methods' => WP_REST_Server::READABLE,
+			'methods' => 'POST',
 			'callback' => 'get_inbox'
 		));
 	}
