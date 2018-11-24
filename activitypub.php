@@ -168,19 +168,18 @@
 		$type = $entityBody->type;
 		$a = $entityBody->actor;
 		if ($a) {
+			// grab the actor data from the webfinger sent to us
 			$act = get_actor($a);
 			$inbox  = $act->inbox;
+			// cobble together the webfinger url from the preferred username and the host name
 			$username = $act->preferredUsername.'@'.parse_url($entityBody->id)['host'];
-			$matches;
+			// get the username we're trying to follow on this site
 			$followobj = (string)$entityBody->object;
-			echo $followobj;
-			preg_match('\/u/\@([a-zA-Z0-9\-]+)/?$', $followobj, $matches);
-			print_r($matches);
-			die(1);
-			if (count($matches) > 0) {
+			$following = str_replace('https://'.parse_url($followobj)['host']."/u/@", "", $followobj);
+			if ($following) {
 				// check if there's an account by that name
-				$following = $matches[1];
 				header('Content-type: application/activity+json');
+				
 				if ($type == 'Follow') {
 					// if it's a follow request, process it
 					// check if it comes from a blocked domain; if so, deny it
@@ -199,17 +198,34 @@
 					$user_check = get_user_by('username', $username);
 					if (!$user_check) {
 						$u = wp_create_user($username, serialize(bin2hex(random_bytes(16))));
+						// store inbox url, preferred username and domain for reference purposes
+						update_user_meta($u, 'description', json_encode($entityBody));
 						update_user_meta($u, 'inbox', $inbox);
+						update_user_meta($u, 'preferred_username', $act->preferredUsername);
 						update_user_meta($u, 'domain', parse_url($entityBody->id)['host']);
 					}
+					// create acceptance object
 					$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_bloginfo('url').'/u/@'.$following.'", "type": "Accept", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": "'.$act->id.'"}';
+					
+					$ch = curl_init();
+					$fields = array(
+						'body' => $accept
+					);
+					curl_setopt($ch, CURLOPT_URL, $inbox);
+					curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+					curl_setopt($ch, CURLOPT_POST, count($fields));
+					curl_setopt($ch, CURLOPT_POSTFIELDS, 'body='.$message);
+					$result = curl_exec($ch);
+					curl_close($ch);
 					echo $accept;
+				} elseif ($type == 'Unfollow') {
+					// if it's an unfollow request, process it
+					$user = get_user_by('username', $username);
+					wp_delete_user($user->ID);
+					// delete user from database
 				}
-			} elseif ($type == 'Unfollow') {
-				// if it's an unfollow request, process it
-				$user = get_user_by('username', $username);
-				wp_delete_user($user->ID);
-				// delete user from database
+			} else {
+				echo "No user by that name.";
 			}
 		}
 		
@@ -333,6 +349,7 @@
 				'body' => $message
 			);
 			curl_setopt($ch, CURLOPT_URL, get_user_meta($subscriber->ID, 'inbox', true));
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 			curl_setopt($ch, CURLOPT_POST, count($fields));
 			curl_setopt($ch, CURLOPT_POSTFIELDS, 'body='.$message);
 			$result = curl_exec($ch);
