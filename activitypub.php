@@ -289,7 +289,7 @@
 					curl_setopt($ch, CURLOPT_POSTFIELDS, 'body='.$accept);
 					$result = curl_exec($ch);
 					curl_close($ch);
-					update_user_meta($u, 'description', json_encode($result));
+					update_user_meta($u, 'description', $result);
 					echo $accept;
 				} elseif ($type == 'Unfollow') {
 					// if it's an unfollow request, process it
