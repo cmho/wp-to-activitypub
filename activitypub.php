@@ -197,7 +197,7 @@
 			// cobble together the webfinger url from the preferred username and the host name
 			$username = $act->preferredUsername.'@'.parse_url($entityBody->id)['host'];
 			// get the username we're trying to follow on this site
-			$followobj = $entityBody->object."";
+			$followobj = $entityBody->object->object;
 			echo $followobj;
 			$following = str_replace('https://'.parse_url($followobj)['host']."/u/@", "", $followobj);
 			$domain = parse_url($entityBody->id)['host'];
