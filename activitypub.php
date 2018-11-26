@@ -221,7 +221,7 @@
 							'post_status' => 'publish',
 							'post_content' => 'pending'
 						));
-						$reject = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_bloginfo('url').'/u/@'.$following.'", "type": "Reject", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": '.json_encode($entityBody->object).'}';
+						$reject = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_bloginfo('url').'/u/@'.$following.'", "type": "Reject", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": '.json_encode($entityBody).'}';
 						wp_update_post(array(
 							'ID' => $p,
 							'post_content' => $reject
@@ -265,7 +265,7 @@
 						'post_content' => 'pending',
 						'post_status' => 'publish'
 					));
-					$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_the_permalink($p).'", "type": "Accept", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": '.json_encode($entityBody->object).'}';
+					$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_the_permalink($p).'", "type": "Accept", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": '.json_encode($entityBody).'}';
 					wp_update_post(array(
 						'ID' => $p,
 						'post_content' => $accept
