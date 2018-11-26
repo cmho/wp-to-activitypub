@@ -197,13 +197,13 @@
 			// cobble together the webfinger url from the preferred username and the host name
 			$username = $act->preferredUsername.'@'.parse_url($entityBody->id)['host'];
 			// get the username we're trying to follow on this site
-			$followobj = $entityBody->object->object;
-			echo $followobj;
-			$following = str_replace('https://'.parse_url($followobj)['host']."/u/@", "", $followobj);
+			$followobj = $entityBody->object;
+			
 			$domain = parse_url($entityBody->id)['host'];
 			
-			if ($following) {
+			if (is_string($followobj)) {
 				// check if there's an account by that name
+				$following = str_replace('https://'.parse_url($followobj)['host']."/u/@", "", $followobj);
 				header('Content-type: application/activity+json');
 				header("HTTP/1.1 200 OK");
 				
@@ -299,6 +299,8 @@
 				}
 			} elseif ($type == 'Create') {
 				// handle replies here
+			} elseif ($type == 'Undo') {
+				// handle undo here
 			} else {
 				echo "No user by that name.";
 			}
