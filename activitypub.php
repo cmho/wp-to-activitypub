@@ -50,6 +50,110 @@
 	}
 	add_action('plugins_loaded', 'register_hooks');
 	
+	function wp_activitypub_options_html($args) {
+		$options = get_option('wp_activitypub_settings');
+		if (!current_user_can('manage_options')) {
+        return;
+    }
+    ?>
+    <div class="wrap">
+        <h1><?= esc_html(get_admin_page_title()); ?></h1>
+        <form action="options.php" method="post">
+	        <?php
+		        settings_fields('wp_activitypub_settings');
+		        do_settings_sections('wp_activitypub');
+		        submit_button('Save Settings');
+		      ?>
+        </form>
+    </div>
+    <?php
+	}
+	
+	function wp_activitypub_global_cb($args) {
+		$options = get_option('wp_activitypub_settings');
+		?>
+		<label for="wp_activitypub_global"><input type="checkbox" name="wp_activitypub_global" value="true" /> Enable @all user?</label>
+		<?php
+	}
+	
+	function wp_activitypub_tags_cb($args) {
+		$options = get_option('wp_activitypub_settings');
+		?>
+		<label for="wp_activitypub_tags"><input type="checkbox" name="wp_activitypub_tags" value="true" /> Enable tag users?</label>
+		<p class="description">This will enable federation users to follow tag-[tagname]@yourdomain.com.</p>
+		<?php
+	}
+	
+	function wp_activitypub_cats_cb($args) {
+		$options = get_option('wp_activitypub_settings');
+		?>
+		<label for="wp_activitypub_cats"><input type="checkbox" name="wp_activitypub_cats" value="true" /> Enable category users?</label>
+		<p class="description">This will enable federation users to follow cat-[categoryname]@yourdomain.com.</p>
+		<?php
+	}
+	
+	function ap_settings_init() {
+		register_setting('wp_activitypub', 'wp_activitypub_settings');
+		add_settings_section(
+			'wp_activitypub_posters',
+			__('Global, Tag and Category Users', 'wp_activitypub'),
+			'wp_activitypub_posters_cb',
+			'wp_activitypub'
+		);
+		
+		add_settings_field(
+			'wp_activitypub_global',
+			__('Global User?', 'wp_activitypub'),
+			'wp_activitypub_global_cb',
+			'wp_activitypub',
+			'wp_activitypub_posters',
+			[
+				'label_for' => 'wp_activitypub_global',
+				'class' => 'wp_activitypub_row',
+				'wp_activitypub_custom_data' => 'custom'
+			]
+		);
+		
+		add_settings_field(
+			'wp_activitypub_tags',
+			__('Tag Users?', 'wp_activitypub'),
+			'wp_activitypub_tags_cb',
+			'wp_activitypub',
+			'wp_activitypub_posters',
+			[
+				'label_for' => 'wp_activitypub_tags',
+				'class' => 'wp_activitypub_row',
+				'wp_activitypub_custom_data' => 'custom'
+			]
+		);
+		
+		add_settings_field(
+			'wp_activitypub_cats',
+			__('Global User?', 'wp_activitypub'),
+			'wp_activitypub_cats_cb',
+			'wp_activitypub',
+			'wp_activitypub_cats',
+			[
+				'label_for' => 'wp_activitypub_cats',
+				'class' => 'wp_activitypub_row',
+				'wp_activitypub_custom_data' => 'custom'
+			]
+		);
+	}
+	add_action('admin_init', 'ap_settings_init');
+	
+	function ap_options_page() {
+		add_submenu_page(
+			'settings.php',
+			'WP ActivityPub Settings',
+			'WP ActivityPub',
+			'manage_options',
+			'wp_activitypub',
+			'wp_activitypub_options_html'
+		);
+	}
+	add_action('admin_menu', 'ap_options_page');
+	
 	function rewrite_init() {
 		// set up some nicer rewrite urls
 		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/followers/?$', 'index.php?rest_route/ap/v1/followers&acct=$matches[1]', 'top');
@@ -230,8 +334,8 @@
 						$date = date('c');
 						$pkey = openssl_get_privatekey(get_user_meta($follow_user->ID, 'privkey', true));
 						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
-						openssl_sign($str, $signature, $pkey);
-						$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .$signature. '"';
+						openssl_sign($str, $signature, $pkey, 'sha512');
+						$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .base64_encode($signature). '"';
 						curl_setopt($ch, CURLOPT_URL, $inbox);
 						curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 					    'Signature: '.$sig_str,
@@ -248,41 +352,46 @@
 						die(1);
 						return;
 					}
-					$follow_user = get_user_by('username', $following);
+					$follow_user = get_user_by('slug', $following);
 					// otherwise, add user account and return accept notice
-					$user_check = get_user_by('username', $username);
+					$user_check = get_user_by('slug', $username);
 					if (!$user_check) {
 						$u = wp_create_user($username, serialize(bin2hex(random_bytes(16))));
 						// store inbox url, preferred username and domain for reference purposes
-						update_user_meta($u, 'inbox', $inbox);
-						update_user_meta($u, 'preferred_username', $act->preferredUsername);
-						update_user_meta($u, 'description', json_encode($entityBody));
-						update_user_meta($u, 'domain', $domain);
 					}
+					update_user_meta($u, 'inbox', $inbox);
+					update_user_meta($u, 'preferred_username', $act->preferredUsername);
+					update_user_meta($u, 'domain', $domain);
+					update_user_meta($u, 'pubkey', $act->publicKey->publicKeyPem);
 					// create acceptance object
 					$p = wp_insert_post(array(
 						'post_type' => 'outboxitem',
 						'post_content' => 'pending',
 						'post_status' => 'publish'
 					));
-					$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_the_permalink($p).'", "type": "Accept", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": '.json_encode($entityBody).'}';
-					wp_update_post(array(
-						'ID' => $p,
-						'post_content' => $accept
-					));
-					
 					$ch = curl_init();
 					$date = date('c');
-					$pkey = openssl_get_privatekey(get_user_meta($follow_user->ID, 'privkey', true));
 					$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
-					openssl_sign($str, $signature, $pkey);
-					$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .$signature. '"';
+					$signature = "";
+					$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
+					$keyval = <<< EOT
+$key
+EOT;
+					$pkey = openssl_get_privatekey($keyval);
+					openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA512);
+					$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .base64_encode($signature). '"';
 					curl_setopt($ch, CURLOPT_URL, $inbox);
 					curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 				    'Signature: '.$sig_str,
 				    'Date: '.$date,
 				    'Host: '.$domain,
 				    'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams'
+					));
+					
+					$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_the_permalink($p).'", "type": "Accept", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": '.json_encode($entityBody).', "signature": {"type": "RsaSignature2017", "creator": "'.get_bloginfo('url')."/u/@".$follow_user->user_login.'#main-key", "created": "'.$date.'", "signatureValue": "'.base64_encode($signature).'"}}';
+					wp_update_post(array(
+						'ID' => $p,
+						'post_content' => $accept
 					));
 					curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 					curl_setopt($ch, CURLOPT_POST, 1);
@@ -291,16 +400,14 @@
 					curl_close($ch);
 					update_user_meta($u, 'description', $result);
 					echo $accept;
-				} elseif ($type == 'Unfollow') {
+				} elseif ($type == 'Create') {
+					// handle replies here
+				} elseif ($type == 'Undo') {
 					// if it's an unfollow request, process it
-					$user = get_user_by('username', $username);
+					$user = get_user_by('slug', $username."-".$domain);
 					wp_delete_user($user->ID);
 					// delete user from database
-				}
-			} elseif ($type == 'Create') {
-				// handle replies here
-			} elseif ($type == 'Undo') {
-				// handle undo here
+				} 
 			} else {
 				echo "No user by that name.";
 			}
@@ -330,18 +437,20 @@
 	
 	function add_user_keys($user_id) {
 		$user = get_user_by('ID', $user_id);
-		if (!get_user_meta($user->ID, 'pubkey')) {
-			// if no keys set up for a profile on save, generate new ones
-			$res = openssl_pkey_new(array(
-				'digest_alg' => 'sha512',
-				'private_key_bits' => 4096,
-				'private_key_type' => OPENSSL_KEYTYPE_RSA
-			));
-			openssl_pkey_export($res, $privKey);
-			$pubKey = openssl_pkey_get_details($res);
-			// save keys to user meta fields
-			update_user_meta($user->ID, 'pubkey', $pubKey['key']);
-			update_user_meta($user->ID, 'privkey', $privKey);
+		if (!in_array('subscriber', $user->roles)) {
+			if (!get_user_meta($user->ID, 'pubkey')) {
+				// if no keys set up for a profile on save, generate new ones
+				$res = openssl_pkey_new(array(
+					'digest_alg' => 'sha512',
+					'private_key_bits' => 4096,
+					'private_key_type' => OPENSSL_KEYTYPE_RSA
+				));
+				openssl_pkey_export($res, $privKey);
+				$pubKey = openssl_pkey_get_details($res);
+				// save keys to user meta fields
+				update_user_meta($user->ID, 'pubkey', $pubKey['key']);
+				update_user_meta($user->ID, 'privkey', $privKey);
+			}
 		}
 	}
 	
@@ -372,6 +481,42 @@
 	}
 	add_action( 'show_user_profile', 'add_suspend_checkbox', 10, 1 );
 	add_action( 'edit_user_profile', 'add_suspend_checkbox', 10, 1 );
+	
+	function add_info_fields($profileuser) {
+		?>
+		<h3>Instance Information</h3>
+		<table class="form-table">
+			<tbody>
+				<tr>
+					<th>Domain</th>
+					<td>
+						<input type="text" name="userdomain" id="userdomain" value="<?= get_user_meta($profileuser->ID, 'domain', true); ?>" />
+					</td>
+				</tr>
+				<tr>
+					<th>Preferred Username</th>
+					<td>
+						<input type="text" name="prefuser" id="prefuser" value="<?= get_user_meta($profileuser->ID, 'preferred_username', true); ?>" />
+					</td>
+				</tr>
+				<tr>
+					<th>Inbox</th>
+					<td>
+						<input type="text" name="inboxurl" id="inboxurl" value="<?= get_user_meta($profileuser->ID, 'inbox', true); ?>" />
+					</td>
+				</tr>
+				<tr>
+					<th>Public Key</th>
+					<td>
+						<textarea name="publickey" id="publickey"><?= get_user_meta($profileuser->ID, 'pubkey', true); ?></textarea>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		<?php
+	}
+	add_action( 'show_user_profile', 'add_info_fields', 10, 1 );
+	add_action( 'edit_user_profile', 'add_info_fields', 10, 1 );
 
 	function send_messages($post_id) {
 		global $post;
