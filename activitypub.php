@@ -370,7 +370,13 @@
 						'post_content' => 'pending',
 						'post_status' => 'publish'
 					));
+					$permalink = get_the_permalink($p);
+					$baseurl = get_bloginfo('url');
+					$body = json_encode($entityBody);
 					$ch = curl_init();
+					curl_setopt($ch, CURLOPT_URL, $inbox);
+					curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+					curl_setopt($ch, CURLOPT_POST, 1);
 					$signature = "";
 					$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
 					$keyval = <<< EOT
@@ -380,9 +386,9 @@ EOT;
 					$date = date('r');
 					$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
 					openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA512);
-					$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .base64_encode($signature). '"';
-					curl_setopt($ch, CURLOPT_URL, $inbox);
-					$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_the_permalink($p).'", "type": "Accept", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": '.json_encode($entityBody).', "signature": {"type": "RsaSignature2017", "creator": "'.get_bloginfo('url')."/u/@".$follow_user->user_login.'#main-key", "created": "'.$date.'", "signatureValue": "'.base64_encode($signature).'"}}';
+					$sig_encode = base64_encode($signature);
+					$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .$sig_encode. '"';
+					$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.$permalink.'", "type": "Accept", "actor": "'.$baseurl.'/u/@'.$following.'", "object": '.$body.', "signature": {"type": "RsaSignature2017", "creator": "'.$baseurl."/u/@".$follow_user->user_login.'#main-key", "created": "'.$date.'", "signatureValue": "'.$sig_encode.'"}}';
 					curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 				    'Signature: '.$sig_str,
 				    'Date: '.$date,
@@ -390,8 +396,6 @@ EOT;
 						'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
 						'Content-Length: '.strlen($accept)
 					));
-					curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-					curl_setopt($ch, CURLOPT_POST, 1);
 					curl_setopt($ch, CURLOPT_POSTFIELDS, $accept);
 					$result = curl_exec($ch);
 					curl_close($ch);
