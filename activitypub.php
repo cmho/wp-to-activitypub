@@ -92,6 +92,10 @@
 		<?php
 	}
 	
+	function wp_activitypub_posters_cb($args) {
+		return;
+	}
+	
 	function ap_settings_init() {
 		register_setting('wp_activitypub', 'wp_activitypub');
 		add_settings_section(
@@ -172,67 +176,13 @@
 	}
 	add_action('admin_menu', 'ap_options_page');
 	
-	function add_global_pkeys() {
-		if (get_option('wp_activitypub_global_pubkey') == '') {
-			$res = openssl_pkey_new(array(
-				'digest_alg' => 'sha512',
-				'private_key_bits' => 4096,
-				'private_key_type' => OPENSSL_KEYTYPE_RSA
-			));
-			openssl_pkey_export($res, $privKey);
-			$pubKey = openssl_pkey_get_details($res);
-			update_option('wp_activitypub_global_pubkey', $pubKey['key']);
-			update_option('wp_activitypub_global_privkey', $privKey);
-		}
-	}
-	
-	function add_tag_pkeys() {
-		$tags = get_terms('tag', array(
-			'hide_empty' => false,
-			'meta_query' => array(
-				'relation' => 'OR',
-				array(
-					'key' => 'pubkey',
-					'compare' => 'NOT EXISTS'
-				),
-				array(
-					'key' => 'pubkey',
-					'value' => ''
- 				)
-			)
-		));
-		foreach ($tags as $tag) {
-			add_term_keys($tag->term_id, '', 'tag');
-		}
-	}
-	add_action('update_option_wp_activitypub_tags', 'add_tag_pkeys');
-	
-	function add_cat_pkeys() {
-		$cats = get_terms('category', array(
-			'hide_empty' => false,
-			'meta_query' => array(
-				'relation' => 'OR',
-				array(
-					'key' => 'pubkey',
-					'compare' => 'NOT EXISTS'
-				),
-				array(
-					'key' => 'pubkey',
-					'value' => ''
- 				)
-			)
-		));
-		
-		foreach ($cats as $cat) {
-			add_term_keys($cat->term_id, '', 'category');
-		}
-	}
-	add_action('update_option_wp_activitypub_cats', 'add_cat_pkeys');
-	
 	function rewrite_init() {
 		// set up some nicer rewrite urls
 		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/followers/?$', 'index.php?rest_route/ap/v1/followers&acct=$matches[1]', 'top');
 		add_rewrite_rule('^inbox/?$', 'index.php?rest_route=/ap/v1/inbox', 'top');
+		add_rewrite_rule('^u/all$', 'index.php', 'top');
+		add_rewrite_rule('^u/@tag_([a-zA-Z0-9\-]+)$', 'index.php?tag=$matches[1]', 'top');
+		add_rewrite_rule('^u/@cat_([a-zA-Z0-9\-]+)$', 'index.php?category_name=$matches[1]', 'top');
 		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)$', 'index.php?author_name=$matches[1]', 'top');
 		add_rewrite_rule('^\.well-known/([a-zA-Z0-9\-\?\=\@\%\.]+)$', 'index.php?rest_route=/ap/v1/$matches[1]', 'top');
 	}
@@ -274,15 +224,35 @@
 			} elseif (count($matches2) > 0) {
 				$acct = $matches2[1];
 			}
-			// get the username and then retrieve the correct user from the database
-			$user = get_user_by('slug', $acct);
-			// remove all the newlines characters from the public key and replace with \n for json
-			$safe_key = preg_replace('/\n/', '\n', trim(get_user_meta($user->ID, 'pubkey', true)));
-			// echo the composited actor json object
-			echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "type": "Person", "preferredUsername": "'.$user->user_login.'", "inbox": "'.get_bloginfo('url').'/inbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": "'.get_avatar_url($user->ID).'"}, "summary": "'.get_user_meta($user->ID, 'description', true).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'#main-key", "owner": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "publicKeyPem": "'.$safe_key.'"}}';
-			// close request
-			die(1);
+			// check if this is tag user, cat user, or a global user
+			preg_match('/tag_([a-zA-Z0-9\-]+)$/', $acct, $tagmatches);
+			preg_match('/cat_([a-zA-Z0-9\-]+)$/', $acct, $catmatches);
+			preg_match('/all$/', $acct, $globalmatches);
+			if (count($globalmatches) > 0) {
+				$safe_key = preg_replace('/\n/', '\n', trim(get_option('wp_activitypub_global_pubkey')));
+				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@all", "type": "Person", "preferredUsername": "all", "inbox": "'.get_bloginfo('url').'/inbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": ""}, "summary": "'.get_bloginfo('description').'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@all#main-key", "owner": "'.get_bloginfo('url').'/u/@all", "publicKeyPem": "'.$safe_key.'"}}';
+				die(1);
+			} elseif (count($tagmatches) > 0) {
+				$tag = get_term_by('slug', $tagmatches[1], 'tag');
+				$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($tag->ID, 'pubkey', true)));
+				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'", "type": "Person", "preferredUsername": "tag_'.$tagmatches[1].'", "inbox": "'.get_bloginfo('url').'/inbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": ""}, "summary": "'.term_description($tag->term_id).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'#main-key", "owner": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'", "publicKeyPem": "'.$safe_key.'"}}';
+				die(1);
+			} elseif (count($catmatches) > 0) {
+				$cat = get_term_by('slug', $catmatches[1], 'category');
+				$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($cat->ID, 'pubkey', true)));
+				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'", "type": "Person", "preferredUsername": "cat_'.$catmatches[1].'", "inbox": "'.get_bloginfo('url').'/inbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": ""}, "summary": "'.term_description($cat->term_id).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'#main-key", "owner": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'", "publicKeyPem": "'.$safe_key.'"}}';
+				die(1);
+			} else {
+				// get the username and then retrieve the correct user from the database
+				$user = get_user_by('slug', $acct);
+				// remove all the newlines characters from the public key and replace with \n for json
+				$safe_key = preg_replace('/\n/', '\n', trim(get_user_meta($user->ID, 'pubkey', true)));
+				// echo the composited actor json object
+				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "type": "Person", "preferredUsername": "'.$user->user_login.'", "inbox": "'.get_bloginfo('url').'/inbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": "'.get_avatar_url($user->ID).'"}, "summary": "'.get_user_meta($user->ID, 'description', true).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'#main-key", "owner": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "publicKeyPem": "'.$safe_key.'"}}';
+				die(1);
+			}
 		}
+		// close request
 	}
 	add_action('wp_headers', 'redirect_to_actor');
 	
@@ -401,29 +371,39 @@
 							'post_content' => 'pending'
 						));
 						$reject = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_bloginfo('url').'/u/@'.$following.'", "type": "Reject", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": '.json_encode($entityBody).'}';
-						wp_update_post(array(
-							'ID' => $p,
-							'post_content' => $reject
-						));
+						$permalink = get_the_permalink($p);
+						$baseurl = get_bloginfo('url');
+						$body = json_encode($entityBody);
 						$ch = curl_init();
-						$date = date('c');
-						$pkey = openssl_get_privatekey(get_user_meta($follow_user->ID, 'privkey', true));
-						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
-						openssl_sign($str, $signature, $pkey, 'sha512');
-						$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .base64_encode($signature). '"';
 						curl_setopt($ch, CURLOPT_URL, $inbox);
+						curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+						curl_setopt($ch, CURLOPT_POST, 1);
+						$signature = "";
+						$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
+						$keyval = <<< EOT
+$key
+EOT;
+						$pkey = openssl_get_privatekey($keyval);
+						$date = date('c');
+						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
+						openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA512);
+						$sig_encode = base64_encode($signature);
+						$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .$sig_encode. '"';
 						curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 					    'Signature: '.$sig_str,
 					    'Date: '.$date,
 					    'Host: '.$domain,
-					    'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams'
+							'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
+							'Content-Length: '.strlen($accept)
 						));
-						curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-						curl_setopt($ch, CURLOPT_POST, 1);
-						curl_setopt($ch, CURLOPT_POSTFIELDS, 'body='.$reject);
+						curl_setopt($ch, CURLOPT_POSTFIELDS, $reject);
 						$result = curl_exec($ch);
 						curl_close($ch);
 						echo $reject;
+						wp_update_post(array(
+							'ID' => $p,
+							'post_content' => $reject
+						));
 						die(1);
 						return;
 					}
@@ -527,6 +507,65 @@ EOT;
 		add_term_meta($term_id, 'privkey', $privKey);
 	}
 	add_action('create_term', 'add_term_keys');
+	
+	
+	
+	function add_global_pkeys() {
+		if (get_option('wp_activitypub_global_pubkey') == '') {
+			$res = openssl_pkey_new(array(
+				'digest_alg' => 'sha512',
+				'private_key_bits' => 4096,
+				'private_key_type' => OPENSSL_KEYTYPE_RSA
+			));
+			openssl_pkey_export($res, $privKey);
+			$pubKey = openssl_pkey_get_details($res);
+			update_option('wp_activitypub_global_pubkey', $pubKey['key']);
+			update_option('wp_activitypub_global_privkey', $privKey);
+		}
+	}
+	
+	function add_tag_pkeys() {
+		$tags = get_terms('tag', array(
+			'hide_empty' => false,
+			'meta_query' => array(
+				'relation' => 'OR',
+				array(
+					'key' => 'pubkey',
+					'compare' => 'NOT EXISTS'
+				),
+				array(
+					'key' => 'pubkey',
+					'value' => ''
+ 				)
+			)
+		));
+		foreach ($tags as $tag) {
+			add_term_keys($tag->term_id, '', 'tag');
+		}
+	}
+	add_action('update_option_wp_activitypub_tags', 'add_tag_pkeys');
+	
+	function add_cat_pkeys() {
+		$cats = get_terms('category', array(
+			'hide_empty' => false,
+			'meta_query' => array(
+				'relation' => 'OR',
+				array(
+					'key' => 'pubkey',
+					'compare' => 'NOT EXISTS'
+				),
+				array(
+					'key' => 'pubkey',
+					'value' => ''
+ 				)
+			)
+		));
+		
+		foreach ($cats as $cat) {
+			add_term_keys($cat->term_id, '', 'category');
+		}
+	}
+	add_action('update_option_wp_activitypub_cats', 'add_cat_pkeys');
 	
 	function add_user_keys($user_id) {
 		$user = get_user_by('ID', $user_id);
