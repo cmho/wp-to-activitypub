@@ -371,14 +371,14 @@
 						'post_status' => 'publish'
 					));
 					$ch = curl_init();
-					$date = date('c');
-					$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
 					$signature = "";
 					$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
 					$keyval = <<< EOT
 $key
 EOT;
 					$pkey = openssl_get_privatekey($keyval);
+					$date = date('r');
+					$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
 					openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA512);
 					$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .base64_encode($signature). '"';
 					curl_setopt($ch, CURLOPT_URL, $inbox);
@@ -390,11 +390,6 @@ EOT;
 						'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
 						'Content-Length: '.strlen($accept)
 					));
-					
-					wp_update_post(array(
-						'ID' => $p,
-						'post_content' => $accept
-					));
 					curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 					curl_setopt($ch, CURLOPT_POST, 1);
 					curl_setopt($ch, CURLOPT_POSTFIELDS, $accept);
@@ -402,6 +397,10 @@ EOT;
 					curl_close($ch);
 					update_user_meta($u, 'follow_result', $result);
 					echo $accept;
+					wp_update_post(array(
+						'ID' => $p,
+						'post_content' => $accept
+					));
 				} elseif ($type == 'Create') {
 					// handle replies here
 				} elseif ($type == 'Undo') {
