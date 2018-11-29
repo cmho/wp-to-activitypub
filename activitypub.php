@@ -233,13 +233,13 @@
 				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@all", "type": "Person", "preferredUsername": "all", "inbox": "'.get_bloginfo('url').'/inbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": ""}, "summary": "'.get_bloginfo('description').'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@all#main-key", "owner": "'.get_bloginfo('url').'/u/@all", "publicKeyPem": "'.$safe_key.'"}}';
 				die(1);
 			} elseif (count($tagmatches) > 0) {
-				$tag = get_term_by('slug', $tagmatches[1], 'tag');
-				$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($tag->ID, 'pubkey', true)));
+				$tag = get_term_by('slug', $tagmatches[1], 'post_tag');
+				$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($tag->term_id, 'pubkey', true)));
 				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'", "type": "Person", "preferredUsername": "tag_'.$tagmatches[1].'", "inbox": "'.get_bloginfo('url').'/inbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": ""}, "summary": "'.term_description($tag->term_id).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'#main-key", "owner": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'", "publicKeyPem": "'.$safe_key.'"}}';
 				die(1);
 			} elseif (count($catmatches) > 0) {
 				$cat = get_term_by('slug', $catmatches[1], 'category');
-				$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($cat->ID, 'pubkey', true)));
+				$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($cat->term_id, 'pubkey', true)));
 				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'", "type": "Person", "preferredUsername": "cat_'.$catmatches[1].'", "inbox": "'.get_bloginfo('url').'/inbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": ""}, "summary": "'.term_description($cat->term_id).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'#main-key", "owner": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'", "publicKeyPem": "'.$safe_key.'"}}';
 				die(1);
 			} else {
@@ -502,6 +502,7 @@ EOT;
 	add_action('rest_api_init', 'rest_api_stuff');
 	
 	function add_term_keys($term_id, $tt_id, $taxonomy) {
+		$privKey;
 		$res = openssl_pkey_new(array(
 			'digest_alg' => 'sha512',
 			'private_key_bits' => 4096,
@@ -515,7 +516,8 @@ EOT;
 	add_action('create_term', 'add_term_keys');
 	
 	function add_global_pkeys() {
-		if (get_option('wp_activitypub_global_pubkey') == '') {
+		if (get_option('wp_activitypub_global') && get_option('wp_activitypub_global_pubkey') == '') {
+			$privKey;
 			$res = openssl_pkey_new(array(
 				'digest_alg' => 'sha512',
 				'private_key_bits' => 4096,
@@ -530,46 +532,50 @@ EOT;
 	add_action('update_option_wp_activitypub_global', 'add_global_pkeys');
 	
 	function add_tag_pkeys() {
-		$tags = get_terms(array(
-			'taxonomy' => 'tag',
-			'hide_empty' => false,
-			'meta_query' => array(
-				'relation' => 'OR',
-				array(
-					'key' => 'pubkey',
-					'compare' => 'NOT EXISTS'
-				),
-				array(
-					'key' => 'pubkey',
-					'value' => ''
- 				)
-			)
-		));
-		foreach ($tags as $tag) {
-			add_term_keys($tag->term_id, '', 'tag');
+		if (get_option('wp_activitypub_tags')) {
+			$tags = get_terms(array(
+				'taxonomy' => 'post_tag',
+				'hide_empty' => false,
+				'meta_query' => array(
+					'relation' => 'OR',
+					array(
+						'key' => 'pubkey',
+						'compare' => 'NOT EXISTS'
+					),
+					array(
+						'key' => 'pubkey',
+						'value' => ''
+	 				)
+				)
+			));
+			foreach ($tags as $tag) {
+				add_term_keys($tag->term_id, '', 'tag');
+			}
 		}
 	}
 	add_action('update_option_wp_activitypub_tags', 'add_tag_pkeys');
 	
 	function add_cat_pkeys() {
-		$cats = get_terms(array(
-			'taxonomy' => 'category',
-			'hide_empty' => false,
-			'meta_query' => array(
-				'relation' => 'OR',
-				array(
-					'key' => 'pubkey',
-					'compare' => 'NOT EXISTS'
-				),
-				array(
-					'key' => 'pubkey',
-					'value' => ''
- 				)
-			)
-		));
-		
-		foreach ($cats as $cat) {
-			add_term_keys($cat->term_id, '', 'category');
+		if (get_option('wp_activitypub_cats')) {
+			$cats = get_terms(array(
+				'taxonomy' => 'category',
+				'hide_empty' => false,
+				'meta_query' => array(
+					'relation' => 'OR',
+					array(
+						'key' => 'pubkey',
+						'compare' => 'NOT EXISTS'
+					),
+					array(
+						'key' => 'pubkey',
+						'value' => ''
+	 				)
+				)
+			));
+			
+			foreach ($cats as $cat) {
+				add_term_keys($cat->term_id, '', 'category');
+			}
 		}
 	}
 	add_action('update_option_wp_activitypub_cats', 'add_cat_pkeys');
