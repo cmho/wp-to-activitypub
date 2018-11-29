@@ -297,7 +297,7 @@
 		if ($a) {
 			// grab the actor data from the webfinger sent to us
 			$act = get_actor($a);
-			$inbox  = $act->inbox;
+			$inbox  = $act->endpoints->sharedInbox;
 			// cobble together the webfinger url from the preferred username and the host name
 			$username = $act->preferredUsername.'@'.parse_url($entityBody->id)['host'];
 			// get the username we're trying to follow on this site
@@ -363,6 +363,7 @@
 					update_user_meta($u, 'preferred_username', $act->preferredUsername);
 					update_user_meta($u, 'domain', $domain);
 					update_user_meta($u, 'pubkey', $act->publicKey->publicKeyPem);
+					update_user_meta($u, 'actor_info', json_encode($act));
 					// create acceptance object
 					$p = wp_insert_post(array(
 						'post_type' => 'outboxitem',
@@ -398,13 +399,13 @@ EOT;
 					curl_setopt($ch, CURLOPT_POSTFIELDS, 'body='.$accept);
 					$result = curl_exec($ch);
 					curl_close($ch);
-					update_user_meta($u, 'description', $result);
+					update_user_meta($u, 'follow_result', $result);
 					echo $accept;
 				} elseif ($type == 'Create') {
 					// handle replies here
 				} elseif ($type == 'Undo') {
 					// if it's an unfollow request, process it
-					$user = get_user_by('slug', $username."-".$domain);
+					$user = get_user_by('slug', $username."@".$domain);
 					wp_delete_user($user->ID);
 					// delete user from database
 				} 
@@ -509,6 +510,18 @@ EOT;
 					<th>Public Key</th>
 					<td>
 						<textarea name="publickey" id="publickey"><?= get_user_meta($profileuser->ID, 'pubkey', true); ?></textarea>
+					</td>
+				</tr>
+				<tr>
+					<th>Actor Info</th>
+					<td>
+						<textarea name="followers" id="followers"><?= get_user_meta($profileuser->ID, 'actor_info', true); ?></textarea>
+					</td>
+				</tr>
+				<tr>
+					<th>Follow Result</th>
+					<td>
+						<textarea name="followers" id="followers"><?= get_user_meta($profileuser->ID, 'follow_result', true); ?></textarea>
 					</td>
 				</tr>
 			</tbody>
