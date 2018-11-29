@@ -382,21 +382,22 @@ EOT;
 					openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA512);
 					$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .base64_encode($signature). '"';
 					curl_setopt($ch, CURLOPT_URL, $inbox);
+					$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_the_permalink($p).'", "type": "Accept", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": '.json_encode($entityBody).', "signature": {"type": "RsaSignature2017", "creator": "'.get_bloginfo('url')."/u/@".$follow_user->user_login.'#main-key", "created": "'.$date.'", "signatureValue": "'.base64_encode($signature).'"}}';
 					curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 				    'Signature: '.$sig_str,
 				    'Date: '.$date,
 				    'Host: '.$domain,
-				    'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams'
+						'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
+						'Content-Length: '.strlen($accept)
 					));
 					
-					$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_the_permalink($p).'", "type": "Accept", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": '.json_encode($entityBody).', "signature": {"type": "RsaSignature2017", "creator": "'.get_bloginfo('url')."/u/@".$follow_user->user_login.'#main-key", "created": "'.$date.'", "signatureValue": "'.base64_encode($signature).'"}}';
 					wp_update_post(array(
 						'ID' => $p,
 						'post_content' => $accept
 					));
 					curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 					curl_setopt($ch, CURLOPT_POST, 1);
-					curl_setopt($ch, CURLOPT_POSTFIELDS, 'body='.$accept);
+					curl_setopt($ch, CURLOPT_POSTFIELDS, $accept);
 					$result = curl_exec($ch);
 					curl_close($ch);
 					update_user_meta($u, 'follow_result', $result);
