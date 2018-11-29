@@ -60,7 +60,7 @@
         <h1><?= esc_html(get_admin_page_title()); ?></h1>
         <form action="options.php" method="post">
 	        <?php
-		        settings_fields('wp_activitypub_settings');
+		        settings_fields('wp_activitypub');
 		        do_settings_sections('wp_activitypub');
 		        submit_button('Save Settings');
 		      ?>
@@ -70,30 +70,30 @@
 	}
 	
 	function wp_activitypub_global_cb($args) {
-		$options = get_option('wp_activitypub_settings');
+		$options = get_option('wp_activitypub_global');
 		?>
-		<label for="wp_activitypub_global"><input type="checkbox" name="wp_activitypub_global" value="true" /> Enable @all user?</label>
+		<label for="wp_activitypub_global"><input type="checkbox" name="wp_activitypub_global" value="true"<?= $options ? ' checked="checked"' : ''; ?> /> Enable @all user?</label>
 		<?php
 	}
 	
 	function wp_activitypub_tags_cb($args) {
-		$options = get_option('wp_activitypub_settings');
+		$options = get_option('wp_activitypub_tags');
 		?>
-		<label for="wp_activitypub_tags"><input type="checkbox" name="wp_activitypub_tags" value="true" /> Enable tag users?</label>
+		<label for="wp_activitypub_tags"><input type="checkbox" name="wp_activitypub_tags" value="true"<?= $options ? ' checked="checked"' : ''; ?> /> Enable tag users?</label>
 		<p class="description">This will enable federation users to follow tag-[tagname]@yourdomain.com.</p>
 		<?php
 	}
 	
 	function wp_activitypub_cats_cb($args) {
-		$options = get_option('wp_activitypub_settings');
+		$options = get_option('wp_activitypub_cats');
 		?>
-		<label for="wp_activitypub_cats"><input type="checkbox" name="wp_activitypub_cats" value="true" /> Enable category users?</label>
+		<label for="wp_activitypub_cats"><input type="checkbox" name="wp_activitypub_cats" value="true"<?= $options ? ' checked="checked"' : ''; ?> /> Enable category users?</label>
 		<p class="description">This will enable federation users to follow cat-[categoryname]@yourdomain.com.</p>
 		<?php
 	}
 	
 	function ap_settings_init() {
-		register_setting('wp_activitypub', 'wp_activitypub_settings');
+		register_setting('wp_activitypub', 'wp_activitypub');
 		add_settings_section(
 			'wp_activitypub_posters',
 			__('Global, Tag and Category Users', 'wp_activitypub'),
@@ -101,6 +101,16 @@
 			'wp_activitypub'
 		);
 		
+		register_setting('wp_activitypub', 'wp_activitypub_global', array(
+			'type' => 'boolean',
+			'default' => false
+		));
+		register_setting('wp_activitypub', 'wp_activitypub_global_pubkey', array(
+			'type' => 'string'
+		));
+		register_setting('wp_activitypub', 'wp_activitypub_global_privkey', array(
+			'type' => 'string'
+		));
 		add_settings_field(
 			'wp_activitypub_global',
 			__('Global User?', 'wp_activitypub'),
@@ -114,6 +124,10 @@
 			]
 		);
 		
+		register_setting('wp_activitypub', 'wp_activitypub_tags', array(
+			'type' => 'boolean',
+			'default' => false
+		));
 		add_settings_field(
 			'wp_activitypub_tags',
 			__('Tag Users?', 'wp_activitypub'),
@@ -127,12 +141,16 @@
 			]
 		);
 		
+		register_setting('wp_activitypub', 'wp_activitypub_cats', array(
+			'type' => 'boolean',
+			'default' => false
+		));
 		add_settings_field(
 			'wp_activitypub_cats',
-			__('Global User?', 'wp_activitypub'),
+			__('Category Users?', 'wp_activitypub'),
 			'wp_activitypub_cats_cb',
 			'wp_activitypub',
-			'wp_activitypub_cats',
+			'wp_activitypub_posters',
 			[
 				'label_for' => 'wp_activitypub_cats',
 				'class' => 'wp_activitypub_row',
@@ -144,15 +162,72 @@
 	
 	function ap_options_page() {
 		add_submenu_page(
-			'settings.php',
+			'options-general.php',
 			'WP ActivityPub Settings',
 			'WP ActivityPub',
-			'manage_options',
+			'administrator',
 			'wp_activitypub',
 			'wp_activitypub_options_html'
 		);
 	}
 	add_action('admin_menu', 'ap_options_page');
+	
+	function add_global_pkeys() {
+		if (get_option('wp_activitypub_global_pubkey') == '') {
+			$res = openssl_pkey_new(array(
+				'digest_alg' => 'sha512',
+				'private_key_bits' => 4096,
+				'private_key_type' => OPENSSL_KEYTYPE_RSA
+			));
+			openssl_pkey_export($res, $privKey);
+			$pubKey = openssl_pkey_get_details($res);
+			update_option('wp_activitypub_global_pubkey', $pubKey['key']);
+			update_option('wp_activitypub_global_privkey', $privKey);
+		}
+	}
+	
+	function add_tag_pkeys() {
+		$tags = get_terms('tag', array(
+			'hide_empty' => false,
+			'meta_query' => array(
+				'relation' => 'OR',
+				array(
+					'key' => 'pubkey',
+					'compare' => 'NOT EXISTS'
+				),
+				array(
+					'key' => 'pubkey',
+					'value' => ''
+ 				)
+			)
+		));
+		foreach ($tags as $tag) {
+			add_term_keys($tag->term_id, '', 'tag');
+		}
+	}
+	add_action('update_option_wp_activitypub_tags', 'add_tag_pkeys');
+	
+	function add_cat_pkeys() {
+		$cats = get_terms('category', array(
+			'hide_empty' => false,
+			'meta_query' => array(
+				'relation' => 'OR',
+				array(
+					'key' => 'pubkey',
+					'compare' => 'NOT EXISTS'
+				),
+				array(
+					'key' => 'pubkey',
+					'value' => ''
+ 				)
+			)
+		));
+		
+		foreach ($cats as $cat) {
+			add_term_keys($cat->term_id, '', 'category');
+		}
+	}
+	add_action('update_option_wp_activitypub_cats', 'add_cat_pkeys');
 	
 	function rewrite_init() {
 		// set up some nicer rewrite urls
@@ -439,6 +514,19 @@ EOT;
 		));
 	}
 	add_action('rest_api_init', 'rest_api_stuff');
+	
+	function add_term_keys($term_id, $tt_id, $taxonomy) {
+		$res = openssl_pkey_new(array(
+			'digest_alg' => 'sha512',
+			'private_key_bits' => 4096,
+			'private_key_type' => OPENSSL_KEYTYPE_RSA
+		));
+		openssl_pkey_export($res, $privKey);
+		$pubKey = openssl_pkey_get_details($res);
+		add_term_meta($term_id, 'pubkey', $pubKey['key']);
+		add_term_meta($term_id, 'privkey', $privKey);
+	}
+	add_action('create_term', 'add_term_keys');
 	
 	function add_user_keys($user_id) {
 		$user = get_user_by('ID', $user_id);
