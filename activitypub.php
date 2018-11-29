@@ -214,7 +214,7 @@
 		// get the url that was requested
 		$req = $_SERVER['REQUEST_URI'];
 		// parse it and see if it's an author url by our schema
-		preg_match('/\/u\/@([a-zA-Z0-9\-]+)\/?$/', $req, $matches1);
+		preg_match('/\/u\/@([a-zA-Z0-9\-\_]+)\/?$/', $req, $matches1);
 		preg_match('/\/author\/([a-zA-Z0-9\-]+)\/?$/', $req, $matches2);
 		if ((count($matches1) > 0 || count($matches2) > 0) && in_array('application/activity+json', explode(",", getallheaders()['Accept']))) {
 			// if it's an author and the request asked for application/activity+json format, return the actor
