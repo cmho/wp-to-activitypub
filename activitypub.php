@@ -388,7 +388,7 @@ EOT;
 					openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA512);
 					$sig_encode = base64_encode($signature);
 					$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .$sig_encode. '"';
-					$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.$permalink.'", "type": "Accept", "actor": "'.$baseurl.'/u/@'.$following.'", "object": '.$body.', "signature": {"type": "RsaSignature2017", "creator": "'.$baseurl."/u/@".$follow_user->user_login.'#main-key", "created": "'.$date.'", "signatureValue": "'.$sig_encode.'"}}';
+					$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.$permalink.'", "type": "Accept", "actor": "'.$baseurl.'/u/@'.$following.'", "object": '.$body.'}';
 					curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 				    'Signature: '.$sig_str,
 				    'Date: '.$date,
