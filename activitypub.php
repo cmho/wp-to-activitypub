@@ -273,13 +273,19 @@
 		$wfacct = $_GET['resource'];
 		$matches;
 		// make sure it's looking for a webfinger on this domain and that it's a valid account format
-		preg_match('/acct:([a-zA-Z0-9]+)\@([a-z]+\.[a-z]+)/', $wfacct, $matches);
+		preg_match('/acct:([a-zA-Z0-9\_]+)\@([a-z]+\.[a-z]+)/', $wfacct, $matches);
 		if (count($matches) > 0 && parse_url(get_bloginfo('url'))['host'] == $matches[2]) {
 			$user = get_user_by('slug', $matches[1]);
 			// check if user exists
 			if ($user) {
 				// if so, return a webfinger with the user info for federation + following
 				echo '{"subject": "acct:'.$user->user_login.'@'.parse_url(get_bloginfo('url'))['host'].'", "links": [{"rel": "self", "type": "application/activity+json", "href": "'.get_bloginfo('url').'/u/@'.$user->user_login.'"}]}';
+			}
+			
+			preg_match('/^cat_([a-zA-Z\-\_0-9]+)$/', $matches[1], $catmatch);
+			preg_match('/^tag_([a-zA-Z\-\_0-9]+)$/', $matches[1], $tagmatch);
+			if (count($catmatch) > 0 || $tagmatch > 0 || $matches[1] == 'all') {
+				echo '{"subject": "acct:'.$matches[1].'@'.parse_url(get_bloginfo('url'))['host'].'", "links": [{"rel": "self", "type": "application/activity+json", "href": "'.get_bloginfo('url').'/u/@'.$matches[1].'"}]}';
 			}
 		}
 		die(1);
@@ -508,8 +514,6 @@ EOT;
 	}
 	add_action('create_term', 'add_term_keys');
 	
-	
-	
 	function add_global_pkeys() {
 		if (get_option('wp_activitypub_global_pubkey') == '') {
 			$res = openssl_pkey_new(array(
@@ -523,9 +527,11 @@ EOT;
 			update_option('wp_activitypub_global_privkey', $privKey);
 		}
 	}
+	add_action('update_option_wp_activitypub_global', 'add_global_pkeys');
 	
 	function add_tag_pkeys() {
-		$tags = get_terms('tag', array(
+		$tags = get_terms(array(
+			'taxonomy' => 'tag',
 			'hide_empty' => false,
 			'meta_query' => array(
 				'relation' => 'OR',
@@ -546,7 +552,8 @@ EOT;
 	add_action('update_option_wp_activitypub_tags', 'add_tag_pkeys');
 	
 	function add_cat_pkeys() {
-		$cats = get_terms('category', array(
+		$cats = get_terms(array(
+			'taxonomy' => 'category',
 			'hide_empty' => false,
 			'meta_query' => array(
 				'relation' => 'OR',
