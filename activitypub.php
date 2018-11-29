@@ -297,7 +297,7 @@
 		if ($a) {
 			// grab the actor data from the webfinger sent to us
 			$act = get_actor($a);
-			$inbox  = $act->endpoints->sharedInbox;
+			$inbox  = $act->inbox;
 			// cobble together the webfinger url from the preferred username and the host name
 			$username = $act->preferredUsername.'@'.parse_url($entityBody->id)['host'];
 			// get the username we're trying to follow on this site
@@ -333,7 +333,7 @@
 						$ch = curl_init();
 						$date = date('c');
 						$pkey = openssl_get_privatekey(get_user_meta($follow_user->ID, 'privkey', true));
-						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
+						$str = "(request-target): post /users/".$act->preferredUsername."/inbox\nhost: ".$domain."\ndate: ".$date;
 						openssl_sign($str, $signature, $pkey, 'sha512');
 						$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .base64_encode($signature). '"';
 						curl_setopt($ch, CURLOPT_URL, $inbox);
