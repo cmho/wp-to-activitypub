@@ -178,9 +178,11 @@
 	
 	function rewrite_init() {
 		// set up some nicer rewrite urls
-		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/followers/?$', 'index.php?rest_route/ap/v1/followers&acct=$matches[1]', 'top');
+		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/outbox$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]', 'top');
+		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/outbox\??([a-zA-Z0-9_\&\=]+)?$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]&matches[2]', 'top');
+		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/followers$', 'index.php?rest_route=/ap/v1/followers&acct=$matches[1]', 'top');
 		add_rewrite_rule('^inbox/?$', 'index.php?rest_route=/ap/v1/inbox', 'top');
-		add_rewrite_rule('^u/all$', 'index.php', 'top');
+		add_rewrite_rule('^u/@all$', 'index.php', 'top');
 		add_rewrite_rule('^u/@tag_([a-zA-Z0-9\-]+)$', 'index.php?tag=$matches[1]', 'top');
 		add_rewrite_rule('^u/@cat_([a-zA-Z0-9\-]+)$', 'index.php?category_name=$matches[1]', 'top');
 		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)$', 'index.php?author_name=$matches[1]', 'top');
@@ -189,7 +191,7 @@
 	add_action('init', 'rewrite_init');
 	
 	function post_types_init() {
-		// add the domain_block model so we can block instances who don't deserve our content
+		// add the domain_block model so we can block instances who don't deserve our beautiful beautiful content
 		register_post_type('domain_block', array(
 			'label' => 'Domain Block',
 			'public' => true,
@@ -230,17 +232,17 @@
 			preg_match('/all$/', $acct, $globalmatches);
 			if (count($globalmatches) > 0) {
 				$safe_key = preg_replace('/\n/', '\n', trim(get_option('wp_activitypub_global_pubkey')));
-				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@all", "type": "Person", "preferredUsername": "all", "inbox": "'.get_bloginfo('url').'/inbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": ""}, "summary": "'.get_bloginfo('description').'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@all#main-key", "owner": "'.get_bloginfo('url').'/u/@all", "publicKeyPem": "'.$safe_key.'"}}';
+				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@all", "type": "Person", "preferredUsername": "all", "inbox": "'.get_bloginfo('url').'/inbox", "outbox": "'.get_bloginfo('url').'/u/@all/outbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": "'.get_site_icon_url().'"}, "summary": "'.get_bloginfo('description').'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@all#main-key", "owner": "'.get_bloginfo('url').'/u/@all", "publicKeyPem": "'.$safe_key.'"}}';
 				die(1);
 			} elseif (count($tagmatches) > 0) {
 				$tag = get_term_by('slug', $tagmatches[1], 'post_tag');
 				$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($tag->term_id, 'pubkey', true)));
-				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'", "type": "Person", "preferredUsername": "tag_'.$tagmatches[1].'", "inbox": "'.get_bloginfo('url').'/inbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": ""}, "summary": "'.term_description($tag->term_id).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'#main-key", "owner": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'", "publicKeyPem": "'.$safe_key.'"}}';
+				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'", "type": "Person", "preferredUsername": "tag_'.$tagmatches[1].'", "inbox": "'.get_bloginfo('url').'/inbox", "outbox": "'.get_bloginfo('url').'/u/@'.$tagmatches[1].'/outbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": "'.get_site_icon_url().'"}, "summary": "'.term_description($tag->term_id).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'#main-key", "owner": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'", "publicKeyPem": "'.$safe_key.'"}}';
 				die(1);
 			} elseif (count($catmatches) > 0) {
 				$cat = get_term_by('slug', $catmatches[1], 'category');
 				$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($cat->term_id, 'pubkey', true)));
-				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'", "type": "Person", "preferredUsername": "cat_'.$catmatches[1].'", "inbox": "'.get_bloginfo('url').'/inbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": ""}, "summary": "'.term_description($cat->term_id).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'#main-key", "owner": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'", "publicKeyPem": "'.$safe_key.'"}}';
+				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'", "type": "Person", "preferredUsername": "cat_'.$catmatches[1].'", "inbox": "'.get_bloginfo('url').'/inbox", "outbox": "'.get_bloginfo('url').'/u/@'.$catmatches[1].'/outbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": "'.get_site_icon_url().'"}, "summary": "'.term_description($cat->term_id).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'#main-key", "owner": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'", "publicKeyPem": "'.$safe_key.'"}}';
 				die(1);
 			} else {
 				// get the username and then retrieve the correct user from the database
@@ -248,7 +250,7 @@
 				// remove all the newlines characters from the public key and replace with \n for json
 				$safe_key = preg_replace('/\n/', '\n', trim(get_user_meta($user->ID, 'pubkey', true)));
 				// echo the composited actor json object
-				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "type": "Person", "preferredUsername": "'.$user->user_login.'", "inbox": "'.get_bloginfo('url').'/inbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": "'.get_avatar_url($user->ID).'"}, "summary": "'.get_user_meta($user->ID, 'description', true).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'#main-key", "owner": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "publicKeyPem": "'.$safe_key.'"}}';
+				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "type": "Person", "preferredUsername": "'.$user->user_login.'", "inbox": "'.get_bloginfo('url').'/inbox", "outbox": "'.get_bloginfo('url').'/u/@'.$user->user_login.'/outbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": "'.get_avatar_url($user->ID).'"}, "summary": "'.get_user_meta($user->ID, 'description', true).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'#main-key", "owner": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "publicKeyPem": "'.$safe_key.'"}}';
 				die(1);
 			}
 		}
@@ -292,24 +294,36 @@
 	}
 	
 	function get_followers() {
-		$user = get_query_var('author');
-		$users = get_users(array(
-			'role__in' => array('subscriber'),
-			'meta_query' => array(
-				array(
-					'key' => 'domain',
-					'compare' => 'EXISTS'
+		$req = $_SERVER['REQUEST_URI'];
+		$matches;
+		preg_match('/^\/u\/@([a-zA-Z0-9\-\_]+)\/?/', $req, $matches);
+		// parse it and see if it's an author url by our schema
+		if (count($matches) > 0) {
+			// get the user by slug
+			$user = get_user_by('slug', $matches[1]);
+			$users = get_users(array(
+				'role__in' => array('subscriber'),
+				'meta_query' => array(
+					array(
+						'key' => 'domain',
+						'compare' => 'EXISTS'
+					),
+					array(
+						'key' => 'following',
+						'value' => $matches[1],
+						'compare' => 'IN'
+					)
 				)
-			)
-		));
-		$content = array(
-			'@context' => 'https://www.w3.org/ns/activitystreams',
-			'type' => 'OrderedCollection',
-			'totalItems' => count($users),
-			'id' => 'https://'.get_bloginfo('url')['host'].'/u/@'.$user->login_name
-		);
-		header('Content-type: application/activity+json');
-		echo json_encode($content);
+			));
+			$content = array(
+				'@context' => 'https://www.w3.org/ns/activitystreams',
+				'type' => 'OrderedCollection',
+				'totalItems' => count($users),
+				'id' => get_bloginfo('url').'/u/@'.$matches[1]
+			);
+			header('Content-type: application/activity+json');
+			echo json_encode($content);
+		}
 	}
 	
 	function get_actor($url) {
@@ -348,137 +362,266 @@
 		if ($a) {
 			// grab the actor data from the webfinger sent to us
 			$act = get_actor($a);
-			$inbox  = $act->endpoints->sharedInbox;
-			// cobble together the webfinger url from the preferred username and the host name
-			$username = $act->preferredUsername.'@'.parse_url($entityBody->id)['host'];
-			// get the username we're trying to follow on this site
-			$followobj = $entityBody->object;
-			
-			$domain = parse_url($entityBody->id)['host'];
-			
-			if (is_string($followobj)) {
-				// check if there's an account by that name
-				$following = str_replace('https://'.parse_url($followobj)['host']."/u/@", "", $followobj);
-				header('Content-type: application/activity+json');
-				header("HTTP/1.1 200 OK");
+			//if (openssl_verify($headers, $signature, $act->publicKey->publicKeyPem, 'sha256')) {
+				$inbox  = $act->endpoints->sharedInbox;
+				// cobble together the webfinger url from the preferred username and the host name
+				$username = $act->preferredUsername.'@'.parse_url($entityBody->id)['host'];
+				// get the username we're trying to follow on this site
+				$followobj = $entityBody->object;
 				
-				if ($type == 'Follow') {
-					// if it's a follow request, process it
-					// check if it comes from a blocked domain; if so, deny it
-					$bd = get_posts(array(
-						'post_type' => 'domain_block',
-						'posts_per_page' => -1,
-						'post_name' => str_replace('.', '-', $domain)
-					));
-					if (count($bd) > 0) {
+				$domain = parse_url($entityBody->id)['host'];
+				
+				if (is_string($followobj)) {
+					// check if there's an account by that name
+					$following = str_replace('https://'.parse_url($followobj)['host']."/u/@", "", $followobj);
+					header('Content-type: application/activity+json');
+					header("HTTP/1.1 200 OK");
+					
+					if ($type == 'Follow') {
+						// if it's a follow request, process it
+						// check if it comes from a blocked domain; if so, deny it
+						$bd = get_posts(array(
+							'post_type' => 'domain_block',
+							'posts_per_page' => -1,
+							'post_name' => str_replace('.', '-', $domain)
+						));
+						if (count($bd) > 0) {
+							$p = wp_insert_post(array(
+								'post_type' => 'outboxitem',
+								'post_status' => 'publish',
+								'post_content' => 'pending'
+							));
+							$reject = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_bloginfo('url').'/u/@'.$following.'", "type": "Reject", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": '.json_encode($entityBody).'}';
+							$permalink = get_the_permalink($p);
+							$baseurl = get_bloginfo('url');
+							$body = json_encode($entityBody);
+							$ch = curl_init();
+							$signature = "";
+							$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
+							$keyval = <<< EOT
+$key
+EOT;
+							$pkey = openssl_get_privatekey($keyval);
+							$date = date('c');
+							$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
+							openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
+							$sig_encode = base64_encode($signature);
+							$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .$sig_encode. '"';
+							curl_setopt_array($curl, array(
+							  CURLOPT_URL => $inbox,
+							  CURLOPT_RETURNTRANSFER => true,
+							  CURLOPT_CUSTOMREQUEST => "POST",
+							  CURLOPT_POST => 1,
+							  CURLOPT_POSTFIELDS => 'body='.$reject,
+							  CURLOPT_HTTPHEADER => array(
+									'Signature: '.$sig_str,
+							    'Date: '.$date,
+							    'Host: '.$domain,
+									'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
+									'Content-Length: '.strlen($reject)
+								),
+							));
+							$result = curl_exec($ch);
+							curl_close($ch);
+							echo $reject;
+							wp_update_post(array(
+								'ID' => $p,
+								'post_content' => $reject
+							));
+							die(1);
+							return;
+						}
+						$follow_user = get_user_by('slug', $following);
+						// otherwise, add user account and return accept notice
+						$user_check = get_user_by('slug', $username);
+						if (!$user_check) {
+							// create new user account if it doesn't exist
+							$u = wp_create_user($username, serialize(bin2hex(random_bytes(16))));
+							// initialize subscription list w/ requested account
+							add_user_meta($u, 'following', array($following));
+						} else {
+							// if the account alreaddy  exists, add the account to the subscription list
+							update_user_meta($u, 'following', array_push(get_user_meta($u, 'following'), $following));
+						}
+						// store inbox url, preferred username, domain, public key, actor for reference purposes
+						update_user_meta($u, 'inbox', $inbox);
+						update_user_meta($u, 'preferred_username', $act->preferredUsername);
+						update_user_meta($u, 'domain', $domain);
+						update_user_meta($u, 'pubkey', $act->publicKey->publicKeyPem);
+						update_user_meta($u, 'actor_info', json_encode($act));
+						
+						// create acceptance object
 						$p = wp_insert_post(array(
 							'post_type' => 'outboxitem',
-							'post_status' => 'publish',
-							'post_content' => 'pending'
+							'post_content' => 'pending',
+							'post_status' => 'publish'
 						));
-						$reject = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_bloginfo('url').'/u/@'.$following.'", "type": "Reject", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": '.json_encode($entityBody).'}';
 						$permalink = get_the_permalink($p);
 						$baseurl = get_bloginfo('url');
 						$body = json_encode($entityBody);
 						$ch = curl_init();
-						curl_setopt($ch, CURLOPT_URL, $inbox);
-						curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-						curl_setopt($ch, CURLOPT_POST, 1);
 						$signature = "";
 						$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
 						$keyval = <<< EOT
 $key
 EOT;
 						$pkey = openssl_get_privatekey($keyval);
+						$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.$permalink.'", "type": "Accept", "actor": "'.$baseurl.'/u/@'.$following.'", "object": '.$body.'}';
 						$date = date('c');
 						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
-						openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA512);
+						openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
 						$sig_encode = base64_encode($signature);
-						$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .$sig_encode. '"';
-						curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-					    'Signature: '.$sig_str,
-					    'Date: '.$date,
-					    'Host: '.$domain,
-							'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
-							'Content-Length: '.strlen($accept)
+						$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'#main-key",headers="(request-target) host date",signature="' .$sig_encode. '"';
+						curl_setopt_array($ch, array(
+						  CURLOPT_URL => $inbox,
+						  CURLOPT_RETURNTRANSFER => true,
+						  CURLOPT_CUSTOMREQUEST => "POST",
+						  CURLOPT_POST => 1,
+						  CURLOPT_POSTFIELDS => 'body='.$accept,
+						  CURLOPT_HTTPHEADER => array(
+								'Signature: '.$sig_str,
+						    'Date: '.$date,
+						    'Host: '.$domain,
+								'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
+								'Content-Length: '.strlen($accept)
+							),
 						));
-						curl_setopt($ch, CURLOPT_POSTFIELDS, $reject);
 						$result = curl_exec($ch);
 						curl_close($ch);
-						echo $reject;
+						update_user_meta($u, 'follow_result', var_dump($result));
+						echo $accept;
 						wp_update_post(array(
 							'ID' => $p,
-							'post_content' => $reject
+							'post_content' => $accept
 						));
-						die(1);
-						return;
-					}
-					$follow_user = get_user_by('slug', $following);
-					// otherwise, add user account and return accept notice
-					$user_check = get_user_by('slug', $username);
-					if (!$user_check) {
-						$u = wp_create_user($username, serialize(bin2hex(random_bytes(16))));
-						// store inbox url, preferred username and domain for reference purposes
-					}
-					update_user_meta($u, 'inbox', $inbox);
-					update_user_meta($u, 'preferred_username', $act->preferredUsername);
-					update_user_meta($u, 'domain', $domain);
-					update_user_meta($u, 'pubkey', $act->publicKey->publicKeyPem);
-					update_user_meta($u, 'actor_info', json_encode($act));
-					// create acceptance object
-					$p = wp_insert_post(array(
-						'post_type' => 'outboxitem',
-						'post_content' => 'pending',
-						'post_status' => 'publish'
-					));
-					$permalink = get_the_permalink($p);
-					$baseurl = get_bloginfo('url');
-					$body = json_encode($entityBody);
-					$ch = curl_init();
-					curl_setopt($ch, CURLOPT_URL, $inbox);
-					curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-					curl_setopt($ch, CURLOPT_POST, 1);
-					$signature = "";
-					$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
-					$keyval = <<< EOT
-$key
-EOT;
-					$pkey = openssl_get_privatekey($keyval);
-					$date = date('c');
-					$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
-					openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA512);
-					$sig_encode = base64_encode($signature);
-					$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .$sig_encode. '"';
-					$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.$permalink.'", "type": "Accept", "actor": "'.$baseurl.'/u/@'.$following.'", "object": '.$body.'}';
-					curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-				    'Signature: '.$sig_str,
-				    'Date: '.$date,
-				    'Host: '.$domain,
-						'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
-						'Content-Length: '.strlen($accept)
-					));
-					curl_setopt($ch, CURLOPT_POSTFIELDS, $accept);
-					$result = curl_exec($ch);
-					curl_close($ch);
-					update_user_meta($u, 'follow_result', $result);
-					echo $accept;
-					wp_update_post(array(
-						'ID' => $p,
-						'post_content' => $accept
-					));
-				} elseif ($type == 'Create') {
-					// handle replies here
-				} elseif ($type == 'Undo') {
-					// if it's an unfollow request, process it
-					$user = get_user_by('slug', $username."@".$domain);
-					wp_delete_user($user->ID);
-					// delete user from database
-				} 
-			} else {
-				echo "No user by that name.";
-			}
+					} elseif ($type == 'Create') {
+						// handle replies here
+					} elseif ($type == 'Undo') {
+						// if it's an unfollow request, process it
+						$user = get_user_by('slug', $username."@".$domain);
+						wp_delete_user($user->ID);
+						// delete user from database
+					} 
+				}
+			//} else {
+			//	header("HTTP/1.1 401 Request signature could not be verified");
+			//}
+		} else {
+			echo "No user by that name.";
 		}
 		
+		die(1);
+	}
+	
+	function get_outbox() {
+		header('Content-type: application/activity+json');
+		header("HTTP/1.1 200 OK");
+		$req = $_SERVER['REQUEST_URI'];
+		// parse it and see if it's an author url by our schema
+		$matches;
+		preg_match('/^\/u\/@([a-zA-Z0-9\-\_]+)\/?/', $req, $matches);
+		if ($_GET['page'] && $_GET['page'] == true) {
+			$params = array(
+				'posts_per_page' => 25
+			);
+			if ($_GET['offset']) {
+				$params['offset'] = $_GET['offset'];
+			}
+			print_r($matches);
+			if (count($matches) > 0 && $matches[1]) {
+				$user = $matches[1];
+				preg_match('/^tag_([a-zA-Z_\-0-9]+)/', $user, $tagmatch);
+				preg_match('/^cat_([a-zA-Z_\-0-9]+)/', $user, $catmatch);
+				preg_match('/^all/', $user, $allmatch);
+				if (count($tagmatch) > 0) {
+					$params['tax_query'] = array(
+						array(
+							'taxonomy' => 'post_tag',
+							'term' => $tagmatch[1],
+							'field' => 'slug'
+						)
+					);
+				} elseif (count($catmatch) > 0) {
+					$params['tax_query'] = array(
+						array(
+							'taxonomy' => 'category',
+							'term' => $catmatch[1],
+							'field' => 'slug'
+						)
+					);
+				} elseif (count($allmatch) == 0) {
+					$params['author'] = get_user_by('slug', get_query_var('acct'))->ID;
+				}
+				
+				$posts = get_posts($params);
+				$outbox = array(
+					'@context' => array(
+						"https://www.w3.org/ns/activitystreams",
+		        "https://w3id.org/security/v1"
+					),
+					'id' => '',
+					'type' => 'OrderedCollectionPage',
+					'next' => get_bloginfo('url').'/u/@'.get_query_var('acct').'/outbox?page=true&offset='.(get_query_var('offset') ? intval(get_query_var('offset'))+25 : 25),
+					'partOf' => ''
+				);
+				
+				if (get_query_var('offset')) {
+					$amt = intval(get_query_var('offset')) - 25;
+					if ($amt < 0) {
+						$amt = 0;
+					}
+					$outbox['prev'] = get_bloginfo('url').'/u/@'.$user.'/outbox?page=true&offset='.$amt;
+				}
+				
+				$orderedItems = array();
+				foreach ($posts as $post) {
+					setup_postdata($post);
+					$media = get_attached_media('image', $post->ID);
+					$attachments = array();
+					foreach ($media as $m) {
+						array_push($attachments, array(
+							'type' => 'Image',
+							'content' => wp_get_attachment_caption($m->ID),
+							'url' => wp_get_attachment_url($m->ID)
+						));
+					}
+					array_push($orderedItems, array(
+						'id' => get_the_permalink(),
+						'type' => 'Create',
+						'actor' => get_bloginfo('url').'/u/@'.$user,
+						'published' => get_the_date('c', $post),
+						'to' => array(
+							"https://www.w3.org/ns/activitystreams#Public"
+						),
+						'cc' => array(
+							get_bloginfo('url').'/u/@'.$user.'/followers'
+						),
+						'object' => array(
+							'id' => get_the_permalink($post),
+							'type' => 'Note',
+							'summary' => get_the_excerpt($post),
+							'inReplyTo' => null,
+							'published' => get_the_date('c', $post),
+							'url' => get_the_permalink($post),
+							'attributedTo' => get_bloginfo('url').'/u/@'.$user,
+							'to' => array(
+								"https://www.w3.org/ns/activitystreams#Public"
+							),
+							'cc' => array(
+								get_bloginfo('url').'/u/@'.$user.'/followers'
+							),
+							'sensitive' => get_post_meta($post->ID, 'sensitive', false),
+							'content' => get_the_content($post),
+							'attachment' => $attachments,
+							'tag' => array()
+						)
+					));
+				}
+				wp_reset_postdata();
+				$outbox['orderedItems'] = $orderedItems;
+				echo json_encode($outbox);
+			}
+		}
 		die(1);
 	}
 
@@ -498,13 +641,23 @@ EOT;
 			'methods' => 'POST',
 			'callback' => 'get_inbox'
 		));
+		
+		register_rest_route('ap/v1', '/outbox', array(
+			'methods' => 'POST',
+			'callback' => 'get_outbox'
+		));
+		
+		register_rest_route('ap/v1', '/followers', array(
+			'methods' => 'POST',
+			'callback' => 'get_followers'
+		));
 	}
 	add_action('rest_api_init', 'rest_api_stuff');
 	
 	function add_term_keys($term_id, $tt_id, $taxonomy) {
 		$privKey;
 		$res = openssl_pkey_new(array(
-			'digest_alg' => 'sha512',
+			'digest_alg' => 'sha256',
 			'private_key_bits' => 4096,
 			'private_key_type' => OPENSSL_KEYTYPE_RSA
 		));
