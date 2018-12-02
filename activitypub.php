@@ -391,7 +391,19 @@
 								'post_status' => 'publish',
 								'post_content' => 'pending'
 							));
-							$reject = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.get_bloginfo('url').'/u/@'.$following.'", "type": "Reject", "actor": "'.get_bloginfo('url').'/u/@'.$following.'", "object": '.json_encode($entityBody).'}';
+							$reject = array(
+								'@context' => 'https://www.w3.org/ns/activitystreams',
+								'id' => get_bloginfo('url').'/u/@'.$following,
+								'type' => 'Reject',
+								'actor' => get_bloginfo('url').'/u/@'.$following,
+								'object' => $entityBody,
+								'signature' => array(
+									'type' => 'RsaSignature2017',
+									'creator' => get_bloginfo('url').'/u/@'.$following.'#main-key',
+									'date' => '',
+									'signatureValue' => ''
+								)
+							);
 							$permalink = get_the_permalink($p);
 							$baseurl = get_bloginfo('url');
 							$body = json_encode($entityBody);
@@ -406,19 +418,22 @@ EOT;
 							$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
 							openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
 							$sig_encode = base64_encode($signature);
-							$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'",headers="(request-target) host date",signature="' .$sig_encode. '"';
+							$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'#main-key",headers="(request-target) host date",signature="' .$sig_encode. '"';
+							$reject['signature']['signatureValue'] = $sig_encode;
+							$reject['signature']['date'] = $date;
+							$json_reject = json_encode($reject);
 							curl_setopt_array($curl, array(
 							  CURLOPT_URL => $inbox,
 							  CURLOPT_RETURNTRANSFER => true,
 							  CURLOPT_CUSTOMREQUEST => "POST",
 							  CURLOPT_POST => 1,
-							  CURLOPT_POSTFIELDS => 'body='.$reject,
+							  CURLOPT_POSTFIELDS => 'body='.$json_reject,
 							  CURLOPT_HTTPHEADER => array(
 									'Signature: '.$sig_str,
 							    'Date: '.$date,
 							    'Host: '.$domain,
 									'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
-									'Content-Length: '.strlen($reject)
+									'Content-Length: '.strlen($json_reject)
 								),
 							));
 							$result = curl_exec($ch);
@@ -466,24 +481,40 @@ EOT;
 $key
 EOT;
 						$pkey = openssl_get_privatekey($keyval);
-						$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.$permalink.'", "type": "Accept", "actor": "'.$baseurl.'/u/@'.$following.'", "object": '.$body.'}';
+						$accept = array(
+							'@context' => 'https://www.w3.org/ns/activitystreams',
+							'id' => get_bloginfo('url').'/u/@'.$following,
+							'type' => 'Accept',
+							'actor' => get_bloginfo('url').'/u/@'.$following,
+							'object' => $entityBody,
+							'signature' => array(
+								'type' => 'RsaSignature2017',
+								'creator' => get_bloginfo('url').'/u/@'.$following.'#main-key',
+								'date' => '',
+								'signatureValue' => ''
+							)
+						);
+						//$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.$permalink.'", "type": "Accept", "actor": "'.$baseurl.'/u/@'.$following.'", "object": '.$body.'}';
 						$date = date('c');
 						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
 						openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
 						$sig_encode = base64_encode($signature);
 						$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'#main-key",headers="(request-target) host date",signature="' .$sig_encode. '"';
+						$accept['signature']['signatureValue'] = $sig_encode;
+						$accept['signature']['date'] = $date;
+						$json_accept = json_encode($accept);
 						curl_setopt_array($ch, array(
 						  CURLOPT_URL => $inbox,
 						  CURLOPT_RETURNTRANSFER => true,
 						  CURLOPT_CUSTOMREQUEST => "POST",
 						  CURLOPT_POST => 1,
-						  CURLOPT_POSTFIELDS => 'body='.$accept,
+						  CURLOPT_POSTFIELDS => 'body='.$json_accept,
 						  CURLOPT_HTTPHEADER => array(
 								'Signature: '.$sig_str,
 						    'Date: '.$date,
 						    'Host: '.$domain,
 								'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
-								'Content-Length: '.strlen($accept)
+								'Content-Length: '.strlen($json_accept)
 							),
 						));
 						$result = curl_exec($ch);
@@ -492,7 +523,7 @@ EOT;
 						echo $accept;
 						wp_update_post(array(
 							'ID' => $p,
-							'post_content' => $accept
+							'post_content' => $json_accept
 						));
 					} elseif ($type == 'Create') {
 						// handle replies here
@@ -657,7 +688,7 @@ EOT;
 	function add_term_keys($term_id, $tt_id, $taxonomy) {
 		$privKey;
 		$res = openssl_pkey_new(array(
-			'digest_alg' => 'sha256',
+			'digest_alg' => 'sha256WithRsaEncryption',
 			'private_key_bits' => 4096,
 			'private_key_type' => OPENSSL_KEYTYPE_RSA
 		));
@@ -672,7 +703,7 @@ EOT;
 		if (get_option('wp_activitypub_global') && get_option('wp_activitypub_global_pubkey') == '') {
 			$privKey;
 			$res = openssl_pkey_new(array(
-				'digest_alg' => 'sha512',
+				'digest_alg' => 'sha256WithRsaEncryption',
 				'private_key_bits' => 4096,
 				'private_key_type' => OPENSSL_KEYTYPE_RSA
 			));
@@ -739,7 +770,7 @@ EOT;
 			if (!get_user_meta($user->ID, 'pubkey')) {
 				// if no keys set up for a profile on save, generate new ones
 				$res = openssl_pkey_new(array(
-					'digest_alg' => 'sha512',
+					'digest_alg' => 'sha256WithRsaEncryption',
 					'private_key_bits' => 4096,
 					'private_key_type' => OPENSSL_KEYTYPE_RSA
 				));
