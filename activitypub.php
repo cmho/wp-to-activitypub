@@ -197,6 +197,12 @@
 			'public' => true,
 			'supports' => array('title')
 		));
+
+		register_post_type('user_block', array(
+			'label' => 'User Block',
+			'public' => true,
+			'supports' => array('title')
+		));
 		
 		register_post_type('inboxitem', array(
 			'label' => 'Inbox',
@@ -494,7 +500,6 @@ EOT;
 								'signatureValue' => ''
 							)
 						);
-						//$accept = '{"@context": "https://www.w3.org/ns/activitystreams", "id": "'.$permalink.'", "type": "Accept", "actor": "'.$baseurl.'/u/@'.$following.'", "object": '.$body.'}';
 						$date = date('c');
 						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
 						openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
@@ -882,10 +887,6 @@ EOT;
 				'meta_query' => array(
 					'relation' => 'AND',
 					array(
-						'key' => 'ap_username',
-						'compare' => 'EXISTS'
-					),
-					array(
 						'key' => 'domain',
 						'compare' => 'EXISTS'
 					),
@@ -913,7 +914,7 @@ EOT;
 			}
 			
 			// replace newlines with \n because json doesn't like them
-			$filtered_content = preg_replace('/\n/', '\n', get_the_content());
+			$filtered_content = preg_replace('/\n/', '\n', get_the_content($post_id));
 			// set up message object
 			$message = '{"@context": "https://www.w3.org/ns/activitystreams","id": "'.get_permalink($post_id).'", "type": "Create", "actor": "'.get_bloginfo('url').'/u/@'.get_the_author_meta('user_login').'", "object": {"id": "'.get_permalink($post_id).'", "type": "Note", "published": "'.get_the_date('c').'", "attributedTo": "'.get_bloginfo('url').'/u/@'.get_the_author_meta('user_login').'", "content": "'.filtered_content().'", "to": "https://www.w3.org/ns/activitystreams#Public"}}';
 			foreach ($subscribers as $subscriber) {
@@ -934,4 +935,3 @@ EOT;
 		return;
 	}
 	add_action('save_post', 'send_messages');
-	
