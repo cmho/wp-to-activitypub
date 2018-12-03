@@ -420,7 +420,7 @@
 $key
 EOT;
 							$pkey = openssl_get_privatekey($keyval);
-							$date = date('D, d M Y H:i:s T');
+							$date = date('D, d M Y H:i:s \G\M\T');
 							$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
 							openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
 							$sig_encode = base64_encode($signature);
@@ -500,7 +500,7 @@ EOT;
 								'signatureValue' => ''
 							)
 						);
-						$date = date('D, d M Y H:i:s T');
+						$date = date('D, d M Y H:i:s \G\M\T');
 						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
 						openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
 						$sig_encode = base64_encode($signature);
@@ -916,7 +916,7 @@ EOT;
 			// replace newlines with \n because json doesn't like them
 			$filtered_content = preg_replace('/\n/', '\n', get_the_content($post_id));
 			// set up message object
-			$message = '{"@context": "https://www.w3.org/ns/activitystreams","id": "'.get_permalink($post_id).'", "type": "Create", "actor": "'.get_bloginfo('url').'/u/@'.get_the_author_meta('user_login').'", "object": {"id": "'.get_permalink($post_id).'", "type": "Note", "published": "'.get_the_date('D, d M Y H:i:s T').'", "attributedTo": "'.get_bloginfo('url').'/u/@'.get_the_author_meta('user_login').'", "content": "'.filtered_content().'", "to": "https://www.w3.org/ns/activitystreams#Public"}}';
+			$message = '{"@context": "https://www.w3.org/ns/activitystreams","id": "'.get_permalink($post_id).'", "type": "Create", "actor": "'.get_bloginfo('url').'/u/@'.get_the_author_meta('user_login').'", "object": {"id": "'.get_permalink($post_id).'", "type": "Note", "published": "'.get_the_date('D, d M Y H:i:s \G\M\T').'", "attributedTo": "'.get_bloginfo('url').'/u/@'.get_the_author_meta('user_login').'", "content": "'.filtered_content().'", "to": "https://www.w3.org/ns/activitystreams#Public"}}';
 			foreach ($subscribers as $subscriber) {
 				// post message to subscriber domains
 				$ch = curl_init();
