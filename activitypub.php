@@ -983,13 +983,23 @@ EOT;
 				<tr>
 					<th>Actor Info</th>
 					<td>
-						<textarea name="followers" id="followers"><?= get_user_meta($profileuser->ID, 'actor_info', true); ?></textarea>
+						<textarea name="actor" id="actor"><?= get_user_meta($profileuser->ID, 'actor_info', true); ?></textarea>
 					</td>
 				</tr>
 				<tr>
 					<th>Follow Result</th>
 					<td>
-						<textarea name="followers" id="followers"><?= get_user_meta($profileuser->ID, 'follow_result', true); ?></textarea>
+						<textarea name="follow" id="follow"><?= get_user_meta($profileuser->ID, 'follow_result', true); ?></textarea>
+					</td>
+				</tr>
+				<tr>
+					<th>Follows</th>
+					<td>
+						<select multiple name="follows" id="follows">
+							<?php foreach (get_user_meta($profileuser->ID, 'followers') as $follower) : ?>
+								<option value="<?= $follower; ?>"><?= $follower; ?></option>
+							<?php endforeach; ?>
+						</select>
 					</td>
 				</tr>
 			</tbody>
