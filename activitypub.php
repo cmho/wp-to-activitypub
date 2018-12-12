@@ -242,7 +242,10 @@
 				$ret = array(
 					'@context' => [
 						'https://www.w3.org/ns/activitystreams',
-						'https://w3id.org/security/v1'
+						'https://w3id.org/security/v1',
+						array(
+							"manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+						)
 					],
 					'id' => get_bloginfo('url').'/u/@all',
 					'type' => 'Person',
@@ -271,7 +274,10 @@
 				$ret = array(
 					'@context' => [
 						'https://www.w3.org/ns/activitystreams',
-						'https://w3id.org/security/v1'
+						'https://w3id.org/security/v1',
+						array(
+							"manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+						)
 					],
 					'id' => get_bloginfo('url').'/u/@tag_'.$tagmatches[1],
 					'type' => 'Person',
@@ -300,7 +306,10 @@
 				$ret = array(
 					'@context' => [
 						'https://www.w3.org/ns/activitystreams',
-						'https://w3id.org/security/v1'
+						'https://w3id.org/security/v1',
+						array(
+							"manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+						)
 					],
 					'id' => get_bloginfo('url').'/u/@cat_'.$catmatches[1],
 					'type' => 'Person',
@@ -332,7 +341,10 @@
 				$ret = array(
 					'@context' => [
 						'https://www.w3.org/ns/activitystreams',
-						'https://w3id.org/security/v1'
+						'https://w3id.org/security/v1',
+						array(
+							"manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+						)
 					],
 					'id' => get_bloginfo('url').'/u/@'.$user->user_login,
 					'type' => 'Person',
@@ -442,7 +454,8 @@
 				'@context' => 'https://www.w3.org/ns/activitystreams',
 				'type' => 'OrderedCollection',
 				'totalItems' => count($users),
-				'id' => get_bloginfo('url').'/u/@'.$matches[1]
+				'id' => get_bloginfo('url').'/u/@'.$matches[1].'/followers',
+				'first' => get_bloginfo('url').'/u/@'.$matches[1].'/followers?page=1'
 			);
 			header('Content-type: application/activity+json');
 			echo json_encode($content);
