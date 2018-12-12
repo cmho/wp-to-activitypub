@@ -429,8 +429,8 @@
 	}
 	
 	function get_followers() {
+		echo "hello world";
 		$req = $_SERVER['REQUEST_URI'];
-		$matches;
 		preg_match('/^\/u\/@([a-zA-Z0-9\-\_]+)\/?/', $req, $matches);
 		// parse it and see if it's an author url by our schema
 		print_r($matches);
