@@ -711,15 +711,21 @@ EOT;
 		header('Content-type: application/activity+json');
 		header("HTTP/1.1 200 OK");
 		$req = $_SERVER['REQUEST_URI'];
+		$q = explode('&', $_SERVER['QUERY_STRING']);
+		$query = array();
+		foreach ($q as $z) {
+			$x = explode('=', $z);
+			$query[$x[0]] = $x[1];
+		}
 		// parse it and see if it's an author url by our schema
 		$matches;
 		preg_match('/^\/u\/@([a-zA-Z0-9\-\_]+)\/?/', $req, $matches);
-		if ($_GET['page'] && $_GET['page'] == true) {
+		if (array_key_exists('page', $query) && $query['page']) {
 			$params = array(
 				'posts_per_page' => 25
 			);
-			if ($_GET['offset']) {
-				$params['offset'] = $_GET['offset'];
+			if ($query['offset']) {
+				$params['offset'] = $query['offset'];
 			}
 			print_r($matches);
 			if (count($matches) > 0 && $matches[1]) {
@@ -759,8 +765,8 @@ EOT;
 					'partOf' => ''
 				);
 				
-				if (get_query_var('offset')) {
-					$amt = intval(get_query_var('offset')) - 25;
+				if ($query['offset']) {
+					$amt = intval($query['offset']) - 25;
 					if ($amt < 0) {
 						$amt = 0;
 					}
