@@ -849,10 +849,10 @@ EOT;
 							'url' => get_the_permalink($post),
 							'attributedTo' => get_bloginfo('url').'/u/@'.$user,
 							'to' => array(
-								get_bloginfo('url').'/u/@'.$user.'/followers'
+								"https://www.w3.org/ns/activitystreams#Public"
 							),
 							'cc' => array(
-								"https://www.w3.org/ns/activitystreams#Public"
+								get_bloginfo('url').'/u/@'.$user.'/followers'
 							),
 							'sensitive' => get_post_meta($post->ID, 'sensitive', true),
 							'content' => get_the_content($post),
