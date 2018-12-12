@@ -472,14 +472,14 @@
 				'id' => get_bloginfo('url').'/u/@'.$matches[1].'/followers'
 			);
 			if (array_key_exists('page', $query)) {
-				$content['next'] = get_bloginfo('url').'/u/@'.$matches[1].'/followers?page='(intval($query['page'])+1);
+				$content['next'] = get_bloginfo('url').'/u/@'.$matches[1].'/followers?page='.(intval($query['page'])+1);
 				$content['partOf'] = get_bloginfo('url').'/u/@'.$matches[1].'/followers';
 				$content['type'] = 'OrderedCollectionPage';
 				$content['orderedItems'] = array_map(function($u) {
 					return get_user_meta($u->ID, 'ap_id', false);
 				}, $users);
 				if (intval($query['page']) != 1) {
-					$content['prev'] = get_bloginfo('url').'/u/@'.$matches[1].'/followers?page='(intval($query['page'])-1);
+					$content['prev'] = get_bloginfo('url').'/u/@'.$matches[1].'/followers?page='.(intval($query['page'])-1);
 				}
 			} else {
 				$content['first'] = get_bloginfo('url').'/u/@'.$matches[1].'/followers?page=1';
