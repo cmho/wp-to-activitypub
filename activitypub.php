@@ -435,7 +435,8 @@
 		$q = explode('&', $_SERVER['QUERY_STRING']);
 		$query = array();
 		foreach ($q as $z) {
-			$query[$z[0]] = $z[1];
+			$x = explode('=', $z);
+			$query[$x[0]] = $x[1];
 		}
 		print_r($query);
 		array_key_exists('page', $query);
