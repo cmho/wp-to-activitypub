@@ -760,7 +760,7 @@ EOT;
 					),
 					'id' => get_bloginfo('url').'/u/@'.$matches[1].'/outbox',
 					'type' => 'OrderedCollectionPage',
-					'next' => get_bloginfo('url').'/u/@'.$matches[1].'/outbox?page=true&offset='.(get_query_var('offset') ? intval(get_query_var('offset'))+25 : 25),
+					'next' => get_bloginfo('url').'/u/@'.$matches[1].'/outbox?page=true&offset='.($query['offset'] ? intval($query['offset'])+25 : 25),
 					'partOf' => get_bloginfo('url').'/u/@'.$matches[1].'/outbox'
 				);
 				
