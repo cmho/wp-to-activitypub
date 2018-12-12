@@ -180,9 +180,9 @@
 		// set up some nicer rewrite urls
 		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/outbox$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]', 'top');
 		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/outbox\??([a-zA-Z0-9_\&\=]+)?$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]&matches[2]', 'top');
-		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/followers$', 'index.php?rest_route=/ap/v1/followers&acct=$matches[1]', 'top');
 		add_rewrite_rule('^inbox/?$', 'index.php?rest_route=/ap/v1/inbox', 'top');
 		add_rewrite_rule('^u/@all$', 'index.php', 'top');
+		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/followers$', 'index.php?rest_route=/ap/v1/followers&acct=$matches[1]', 'top');
 		add_rewrite_rule('^u/@tag_([a-zA-Z0-9\-]+)$', 'index.php?tag=$matches[1]', 'top');
 		add_rewrite_rule('^u/@cat_([a-zA-Z0-9\-]+)$', 'index.php?category_name=$matches[1]', 'top');
 		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)$', 'index.php?author_name=$matches[1]', 'top');
@@ -237,26 +237,122 @@
 			preg_match('/cat_([a-zA-Z0-9\-]+)$/', $acct, $catmatches);
 			preg_match('/all$/', $acct, $globalmatches);
 			if (count($globalmatches) > 0) {
-				$safe_key = preg_replace('/\n/', '\n', trim(get_option('wp_activitypub_global_pubkey')));
-				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@all", "type": "Person", "preferredUsername": "all", "inbox": "'.get_bloginfo('url').'/inbox", "outbox": "'.get_bloginfo('url').'/u/@all/outbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": "'.get_site_icon_url().'"}, "summary": "'.get_bloginfo('description').'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@all#main-key", "owner": "'.get_bloginfo('url').'/u/@all", "publicKeyPem": "'.$safe_key.'"}}';
+				//$safe_key = preg_replace('/\n/', '\n', trim(get_option('wp_activitypub_global_pubkey')));
+				$safe_key = trim(get_option('wp_activitypub_global_pubkey'));
+				$ret = array(
+					'@context' => [
+						'https://www.w3.org/ns/activitystreams',
+						'https://w3id.org/security/v1'
+					],
+					'id' => get_bloginfo('url').'/u/@all',
+					'type' => 'Person',
+					'preferredUsername' => 'all',
+					'inbox' => get_bloginfo('url').'/inbox',
+					'outbox' => get_bloginfo('url').'/u/@all/outbox',
+					'manuallyApprovesFollowers' => false,
+					'icon' => array(
+						'type' => 'Image',
+						'mediaType' => 'image/jpeg',
+						'url' => get_site_icon_url()
+					),
+					'summary' => get_bloginfo('description'),
+					'publicKey' => array(
+						'id' => get_bloginfo('url').'/u/@all#main-key',
+						'owner' => get_bloginfo('url').'/u/@all',
+						'publicKeyPem' => $safe_key
+					)
+				);
+				echo json_encode($ret);
 				die(1);
 			} elseif (count($tagmatches) > 0) {
 				$tag = get_term_by('slug', $tagmatches[1], 'post_tag');
-				$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($tag->term_id, 'pubkey', true)));
-				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'", "type": "Person", "preferredUsername": "tag_'.$tagmatches[1].'", "inbox": "'.get_bloginfo('url').'/inbox", "outbox": "'.get_bloginfo('url').'/u/@'.$tagmatches[1].'/outbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": "'.get_site_icon_url().'"}, "summary": "'.term_description($tag->term_id).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'#main-key", "owner": "'.get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'", "publicKeyPem": "'.$safe_key.'"}}';
+				//$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($tag->term_id, 'pubkey', true)));
+				$safe_key = trim(get_term_meta($tag->term_id, 'pubkey', true));
+				$ret = array(
+					'@context' => [
+						'https://www.w3.org/ns/activitystreams',
+						'https://w3id.org/security/v1'
+					],
+					'id' => get_bloginfo('url').'/u/@tag_'.$tagmatches[1],
+					'type' => 'Person',
+					'preferredUsername' => 'tag_'.$tagmatches[1],
+					'inbox' => get_bloginfo('url').'/inbox',
+					'outbox' => get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'/outbox',
+					'manuallyApprovesFollowers' => false,
+					'icon' => array(
+						'type' => 'Image',
+						'mediaType' => 'image/jpeg',
+						'url' => get_site_icon_url()
+					),
+					'summary' => get_bloginfo('description'),
+					'publicKey' => array(
+						'id' => get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'#main-key',
+						'owner' => get_bloginfo('url').'/u/@tag_'.$tagmatches[1],
+						'publicKeyPem' => $safe_key
+					)
+				);
+				echo json_encode($ret);
 				die(1);
 			} elseif (count($catmatches) > 0) {
 				$cat = get_term_by('slug', $catmatches[1], 'category');
-				$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($cat->term_id, 'pubkey', true)));
-				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'", "type": "Person", "preferredUsername": "cat_'.$catmatches[1].'", "inbox": "'.get_bloginfo('url').'/inbox", "outbox": "'.get_bloginfo('url').'/u/@'.$catmatches[1].'/outbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": "'.get_site_icon_url().'"}, "summary": "'.term_description($cat->term_id).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'#main-key", "owner": "'.get_bloginfo('url').'/u/@cat_'.$catmatches[1].'", "publicKeyPem": "'.$safe_key.'"}}';
+				//$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($cat->term_id, 'pubkey', true)));
+				$safe_key = trim(get_term_meta($cat->term_id, 'pubkey', true));
+				$ret = array(
+					'@context' => [
+						'https://www.w3.org/ns/activitystreams',
+						'https://w3id.org/security/v1'
+					],
+					'id' => get_bloginfo('url').'/u/@cat_'.$catmatches[1],
+					'type' => 'Person',
+					'preferredUsername' => 'cat_'.$catmatches[1],
+					'inbox' => get_bloginfo('url').'/inbox',
+					'outbox' => get_bloginfo('url').'/u/@cat_'.$catmatches[1].'/outbox',
+					'manuallyApprovesFollowers' => false,
+					'icon' => array(
+						'type' => 'Image',
+						'mediaType' => 'image/jpeg',
+						'url' => get_site_icon_url()
+					),
+					'summary' => get_bloginfo('description'),
+					'publicKey' => array(
+						'id' => get_bloginfo('url').'/u/@cat_'.$catmatches[1].'#main-key',
+						'owner' => get_bloginfo('url').'/u/@cat_'.$catmatches[1],
+						'publicKeyPem' => $safe_key
+					)
+				);
+				echo json_encode($ret);
 				die(1);
 			} else {
 				// get the username and then retrieve the correct user from the database
 				$user = get_user_by('slug', $acct);
 				// remove all the newlines characters from the public key and replace with \n for json
-				$safe_key = preg_replace('/\n/', '\n', trim(get_user_meta($user->ID, 'pubkey', true)));
+				//$safe_key = preg_replace('/\n/', '\n', trim(get_user_meta($user->ID, 'pubkey', true)));
+				$safe_key = trim(get_user_meta($user->ID, 'pubkey', true));
 				// echo the composited actor json object
-				echo '{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"], "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "type": "Person", "preferredUsername": "'.$user->user_login.'", "inbox": "'.get_bloginfo('url').'/inbox", "outbox": "'.get_bloginfo('url').'/u/@'.$user->user_login.'/outbox", "manuallyApprovesFollowers": false, "icon": {"type": "Image", "mediaType": "image/jpeg", "url": "'.get_avatar_url($user->ID).'"}, "summary": "'.get_user_meta($user->ID, 'description', true).'", "publicKey": { "id": "'.get_bloginfo('url').'/u/@'.$user->user_login.'#main-key", "owner": "'.get_bloginfo('url').'/u/@'.$user->user_login.'", "publicKeyPem": "'.$safe_key.'"}}';
+				$ret = array(
+					'@context' => [
+						'https://www.w3.org/ns/activitystreams',
+						'https://w3id.org/security/v1'
+					],
+					'id' => get_bloginfo('url').'/u/@'.$user->user_login,
+					'type' => 'Person',
+					'preferredUsername' => $user->user_login,
+					'inbox' => get_bloginfo('url').'/inbox',
+					'outbox' => get_bloginfo('url').'/u/@'.$user->user_login.'/outbox',
+					'manuallyApprovesFollowers' => false,
+					'icon' => array(
+						'type' => 'Image',
+						'mediaType' => 'image/jpeg',
+						'url' => get_site_icon_url()
+					),
+					'summary' => get_bloginfo('description'),
+					'publicKey' => array(
+						'id' => get_bloginfo('url').'/u/@'.$user->user_login.'#main-key',
+						'owner' => get_bloginfo('url').'/u/@'.$user->user_login,
+						'publicKeyPem' => $safe_key
+					)
+				);
+				echo json_encode($ret);
 				die(1);
 			}
 		}
@@ -287,13 +383,34 @@
 			// check if user exists
 			if ($user) {
 				// if so, return a webfinger with the user info for federation + following
-				echo '{"subject": "acct:'.$user->user_login.'@'.parse_url(get_bloginfo('url'))['host'].'", "links": [{"rel": "self", "type": "application/activity+json", "href": "'.get_bloginfo('url').'/u/@'.$user->user_login.'"}]}';
+				$ret = array(
+					'subject' => 'acct:'.$user->user_login.'@'.parse_url(get_bloginfo('url'))['host'],
+					'links' => array(
+						array(
+							'rel' => 'self',
+							'type' => 'application/activity+json',
+							'href' => get_bloginfo('url').'/u/@'.$user->user_login
+						)
+					)
+				);
+				echo json_encode($ret);
+				die(1);
 			}
 			
 			preg_match('/^cat_([a-zA-Z\-\_0-9]+)$/', $matches[1], $catmatch);
 			preg_match('/^tag_([a-zA-Z\-\_0-9]+)$/', $matches[1], $tagmatch);
 			if (count($catmatch) > 0 || $tagmatch > 0 || $matches[1] == 'all') {
-				echo '{"subject": "acct:'.$matches[1].'@'.parse_url(get_bloginfo('url'))['host'].'", "links": [{"rel": "self", "type": "application/activity+json", "href": "'.get_bloginfo('url').'/u/@'.$matches[1].'"}]}';
+				$ret = array(
+					'subject' => 'acct:'.$matches[1].'@'.parse_url(get_bloginfo('url'))['host'],
+					'links' => array(
+						array(
+							'rel' => 'self',
+							'type' => 'application/activity+json',
+							'href' => get_bloginfo('url').'/u/@'.$matches[1]
+						)
+					)
+				);
+				echo json_encode($ret);
 			}
 		}
 		die(1);
@@ -329,6 +446,7 @@
 			);
 			header('Content-type: application/activity+json');
 			echo json_encode($content);
+			die(1);
 		}
 	}
 	
@@ -420,11 +538,12 @@
 $key
 EOT;
 							$pkey = openssl_get_privatekey($keyval);
-							$date = date('D, d M Y H:i:s \G\M\T');
+							$now = new \DateTime('now', new \DateTimeZone('GMT'));
+							$date  = $now->format('D, d M Y H:i:s T');
 							$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
 							openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
 							$sig_encode = base64_encode($signature);
-							$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'#main-key",headers="(request-target) host date",signature="' .$sig_encode. '"';
+							$sig_str = "keyId=\"".get_bloginfo('url')."/u/@".$following."#main-key\",headers=\"(request-target) host date\",signature=\"" .$sig_encode. "\"";
 							$reject['signature']['signatureValue'] = $sig_encode;
 							$reject['signature']['date'] = $date;
 							$json_reject = json_encode($reject);
@@ -500,11 +619,12 @@ EOT;
 								'signatureValue' => ''
 							)
 						);
-						$date = date('D, d M Y H:i:s \G\M\T');
+						$now = new \DateTime('now', new \DateTimeZone('GMT'));
+						$date  = $now->format('D, d M Y H:i:s T');
 						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
 						openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
 						$sig_encode = base64_encode($signature);
-						$sig_str = 'keyId="'.get_bloginfo('url').'/u/@'.$following.'#main-key",headers="(request-target) host date",signature="' .$sig_encode. '"';
+						$sig_str = "keyId=\"".get_bloginfo('url')."/u/@".$following."#main-key\",headers=\"(request-target) host date\",signature=\"" .$sig_encode. "\"";
 						$accept['signature']['signatureValue'] = $sig_encode;
 						$accept['signature']['date'] = $date;
 						$json_accept = json_encode($accept);
@@ -518,7 +638,7 @@ EOT;
 								'Signature: '.$sig_str,
 						    'Date: '.$date,
 						    'Host: '.$domain,
-								'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
+								'Content-Type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
 								'Content-Length: '.strlen($json_accept)
 							),
 						));
@@ -528,7 +648,7 @@ EOT;
 						echo $accept;
 						wp_update_post(array(
 							'ID' => $p,
-							'post_content' => $json_accept
+							'post_content' => $json_accept."\n\n".$sig_str
 						));
 					} elseif ($type == 'Create') {
 						// handle replies here
@@ -684,7 +804,7 @@ EOT;
 		));
 		
 		register_rest_route('ap/v1', '/followers', array(
-			'methods' => 'POST',
+			'methods' => WP_REST_Server::READABLE,
 			'callback' => 'get_followers'
 		));
 	}
