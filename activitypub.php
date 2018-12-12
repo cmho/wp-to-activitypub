@@ -787,7 +787,7 @@ EOT;
 					$post_date = new DateTime(get_the_date('c'), new \DateTimeZone('GMT'));
 					$date = $post_date->format('D, d M Y H:i:s T');
 					array_push($orderedItems, array(
-						'id' => get_the_permalink(),
+						'id' => get_the_permalink($post),
 						'type' => 'Create',
 						'actor' => get_bloginfo('url').'/u/@'.$user,
 						'published' => $date,
