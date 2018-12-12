@@ -442,14 +442,12 @@
 					array(
 						'key' => 'domain',
 						'compare' => 'EXISTS'
-					),
-					array(
-						'key' => 'following',
-						'value' => $matches[1],
-						'compare' => 'IN'
 					)
 				)
 			));
+			$users = array_filter($users, function($x) {
+				return in_array($user->user_login, get_user_meta($user->ID, 'following'));
+			});
 			$content = array(
 				'@context' => 'https://www.w3.org/ns/activitystreams',
 				'type' => 'OrderedCollection',
