@@ -749,7 +749,7 @@ EOT;
 						)
 					);
 				} elseif (count($allmatch) == 0) {
-					$params['author'] = get_user_by('slug', get_query_var('acct'))->ID;
+					$params['author'] = get_user_by('slug', $matches[1])->ID;
 				}
 				
 				$posts = get_posts($params);
@@ -758,9 +758,9 @@ EOT;
 						"https://www.w3.org/ns/activitystreams",
 		        "https://w3id.org/security/v1"
 					),
-					'id' => '',
+					'id' => get_bloginfo('url').'/u/@'.$matches[1].'/outbox',
 					'type' => 'OrderedCollectionPage',
-					'next' => get_bloginfo('url').'/u/@'.get_query_var('acct').'/outbox?page=true&offset='.(get_query_var('offset') ? intval(get_query_var('offset'))+25 : 25),
+					'next' => get_bloginfo('url').'/u/@'.$matches[1].'/outbox?page=true&offset='.(get_query_var('offset') ? intval(get_query_var('offset'))+25 : 25),
 					'partOf' => ''
 				);
 				
@@ -822,6 +822,47 @@ EOT;
 				$outbox['orderedItems'] = $orderedItems;
 				echo json_encode($outbox);
 			}
+		} else {
+			$params = array(
+				'posts_per_page' => -1
+			);
+			if (count($matches) > 0 && $matches[1]) {
+				$user = $matches[1];
+				preg_match('/^tag_([a-zA-Z_\-0-9]+)/', $user, $tagmatch);
+				preg_match('/^cat_([a-zA-Z_\-0-9]+)/', $user, $catmatch);
+				preg_match('/^all/', $user, $allmatch);
+				if (count($tagmatch) > 0) {
+					$params['tax_query'] = array(
+						array(
+							'taxonomy' => 'post_tag',
+							'term' => $tagmatch[1],
+							'field' => 'slug'
+						)
+					);
+				} elseif (count($catmatch) > 0) {
+					$params['tax_query'] = array(
+						array(
+							'taxonomy' => 'category',
+							'term' => $catmatch[1],
+							'field' => 'slug'
+						)
+					);
+				} elseif (count($allmatch) == 0) {
+					$params['author'] = $matches[1];
+				}
+			}
+			$posts = get_posts($params);
+			$outbox = array(
+				'@context' => array(
+					"https://www.w3.org/ns/activitystreams",
+        	"https://w3id.org/security/v1"
+				),
+				'id' => get_bloginfo('url').'/u/@'.$user.'/outbox',
+				'type' => 'OrderedCollection',
+				'totalItems' => count($posts),
+				'first' => get_bloginfo('url').'/u/@'.$user.'/outbox?page=true',
+				'last' => get_bloginfo('url').'/u/@'.$user.'/outbox?page=true&min=0'
+			)
 		}
 		die(1);
 	}
