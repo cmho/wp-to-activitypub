@@ -437,6 +437,9 @@
 		foreach ($query as $z) {
 			$query[$z[0]] = $z[1];
 		}
+		print_r($query);
+		array_key_exists('page', $query);
+		die(1);
 		preg_match('/^\/u\/@([a-zA-Z0-9\-\_]+)\/?/', $req, $matches);
 		// parse it and see if it's an author url by our schema
 		if (count($matches) > 0) {
