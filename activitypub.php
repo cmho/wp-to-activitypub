@@ -449,7 +449,7 @@
 			print_r($user);
 			print_r($users);
 			$users = array_filter($users, function($x) {
-				return in_array($user->user_login, get_user_meta($user->ID, 'following'));
+				return in_array($user->user_login, get_user_meta($user->ID, 'following', true));
 			});
 			print_r($users);
 			die(1);
