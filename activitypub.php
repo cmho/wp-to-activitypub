@@ -447,7 +447,7 @@
 			));
 			print_r($users);
 			$users = array_filter($users, function($x) {
-				print_r(get_user_meta($x->ID, 'following', true));
+				print_r(get_user_meta($x->ID, 'following'));
 				return in_array($user->user_login, get_user_meta($x->ID, 'following', true));
 			});
 			print_r($users);
