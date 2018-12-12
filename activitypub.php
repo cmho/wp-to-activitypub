@@ -996,7 +996,7 @@ EOT;
 					<th>Follows</th>
 					<td>
 						<select multiple name="follows" id="follows">
-							<?php foreach (get_user_meta($profileuser->ID, 'followers') as $follower) : ?>
+							<?php foreach (get_user_meta($profileuser->ID, 'following') as $follower) : ?>
 								<option value="<?= $follower; ?>"><?= $follower; ?></option>
 							<?php endforeach; ?>
 						</select>
