@@ -430,8 +430,6 @@
 	
 	function get_followers() {
 		header('Content-type: application/activity+json');
-		echo "hello world";
-		die(1);
 		$req = $_SERVER['REQUEST_URI'];
 		preg_match('/^\/u\/@([a-zA-Z0-9\-\_]+)\/?/', $req, $matches);
 		// parse it and see if it's an author url by our schema
@@ -454,6 +452,7 @@
 				return in_array($user->user_login, get_user_meta($user->ID, 'following'));
 			});
 			print_r($users);
+			die(1);
 			$content = array(
 				'@context' => 'https://www.w3.org/ns/activitystreams',
 				'type' => 'OrderedCollection',
