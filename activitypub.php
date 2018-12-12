@@ -837,7 +837,7 @@ EOT;
 		));
 		
 		register_rest_route('ap/v1', '/outbox', array(
-			'methods' => 'POST',
+			'methods' => WP_REST_Server::READABLE,
 			'callback' => 'get_outbox'
 		));
 		
