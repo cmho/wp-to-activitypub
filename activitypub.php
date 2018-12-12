@@ -862,7 +862,7 @@ EOT;
 				'totalItems' => count($posts),
 				'first' => get_bloginfo('url').'/u/@'.$user.'/outbox?page=true',
 				'last' => get_bloginfo('url').'/u/@'.$user.'/outbox?page=true&min=0'
-			)
+			);
 		}
 		die(1);
 	}
