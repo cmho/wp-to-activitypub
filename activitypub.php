@@ -434,7 +434,7 @@
 		$req = $_SERVER['REQUEST_URI'];
 		$q = explode('&', $_SERVER['QUERY_STRING']);
 		$query = array();
-		foreach ($query as $z) {
+		foreach ($q as $z) {
 			$query[$z[0]] = $z[1];
 		}
 		print_r($query);
