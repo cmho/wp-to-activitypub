@@ -850,7 +850,7 @@ EOT;
 							'cc' => array(
 								get_bloginfo('url').'/u/@'.$user.'/followers'
 							),
-							'sensitive' => get_post_meta($post->ID, 'sensitive', false),
+							'sensitive' => get_post_meta($post->ID, 'sensitive', true),
 							'content' => get_the_content($post),
 							'attachment' => $attachments,
 							'tag' => $tags
