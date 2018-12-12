@@ -429,6 +429,7 @@
 	}
 	
 	function get_followers() {
+		header('Content-type: application/activity+json');
 		echo "hello world";
 		$req = $_SERVER['REQUEST_URI'];
 		preg_match('/^\/u\/@([a-zA-Z0-9\-\_]+)\/?/', $req, $matches);
@@ -459,7 +460,6 @@
 				'id' => get_bloginfo('url').'/u/@'.$matches[1].'/followers',
 				'first' => get_bloginfo('url').'/u/@'.$matches[1].'/followers?page=1'
 			);
-			header('Content-type: application/activity+json');
 			echo json_encode($content);
 			die(1);
 		}
