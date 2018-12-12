@@ -816,6 +816,15 @@ EOT;
 					}
 					$post_date = new DateTime(get_the_date('c'), new \DateTimeZone('GMT'));
 					$date = $post_date->format('D, d M Y H:i:s T');
+					$taglist = get_the_terms($post->ID, 'post_tag');
+					$tags = array();
+					foreach ($taglist as $t) {
+						array_push($tags, array(
+							'type' => 'Hashtag',
+							'href' => get_bloginfo('url').'/tag/'.$t->slug,
+							'name' => '#'.$t->slug
+						));
+					}
 					array_push($orderedItems, array(
 						'id' => get_the_permalink($post),
 						'type' => 'Create',
@@ -844,7 +853,7 @@ EOT;
 							'sensitive' => get_post_meta($post->ID, 'sensitive', false),
 							'content' => get_the_content($post),
 							'attachment' => $attachments,
-							'tag' => array()
+							'tag' => $tags
 						)
 					));
 				}
