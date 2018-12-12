@@ -429,6 +429,7 @@
 	}
 	
 	function get_followers() {
+		global $user;
 		header('Content-type: application/activity+json');
 		$req = $_SERVER['REQUEST_URI'];
 		preg_match('/^\/u\/@([a-zA-Z0-9\-\_]+)\/?/', $req, $matches);
@@ -448,11 +449,10 @@
 			print_r($users);
 			$users = array_filter($users, function($x) {
 				global $user;
+				print_r(get_user_meta($x->ID, 'following', true));
 				if (is_array(get_user_meta($x->ID, 'following', true))) {
-					print_r('A');
 					return in_array($user->user_login, get_user_meta($x->ID, 'following', true));
 				} else {
-					print_r('B');
 					return $user->user_login == get_user_meta($x->ID, 'following', true);
 				}
 			});
