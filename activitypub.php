@@ -672,7 +672,7 @@ EOT;
 						  CURLOPT_RETURNTRANSFER => true,
 						  CURLOPT_CUSTOMREQUEST => "POST",
 						  CURLOPT_POST => 1,
-						  CURLOPT_POSTFIELDS => 'body='.$json_accept,
+						  CURLOPT_POSTFIELDS => $json_accept,
 						  CURLOPT_HTTPHEADER => array(
 								'Signature: '.$sig_str,
 						    'Date: '.$date,
