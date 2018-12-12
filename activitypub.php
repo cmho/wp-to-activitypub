@@ -449,8 +449,10 @@
 			$users = array_filter($users, function($x) {
 				global $user;
 				if (is_array(get_user_meta($x->ID, 'following', true))) {
+					print_r('A');
 					return in_array($user->user_login, get_user_meta($x->ID, 'following', true));
 				} else {
+					print_r('B');
 					return $user->user_login == get_user_meta($x->ID, 'following', true);
 				}
 			});
