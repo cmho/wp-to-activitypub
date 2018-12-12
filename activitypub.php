@@ -596,8 +596,7 @@ EOT;
 									'Signature: '.$sig_str,
 							    'Date: '.$date,
 							    'Host: '.$domain,
-									'Content-type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
-									'Content-Length: '.strlen($json_reject)
+									'Content-Type: application/activity+json',
 								),
 							));
 							$result = curl_exec($ch);
@@ -678,8 +677,7 @@ EOT;
 								'Signature: '.$sig_str,
 						    'Date: '.$date,
 						    'Host: '.$domain,
-								'Content-Type: application/ld+json; profile="https://www.w3.org/ns/activitystreams',
-								'Content-Length: '.strlen($json_accept)
+								'Content-Type: application/ld+json; profile="https://www.w3.org/ns/activitystreams'
 							),
 						));
 						$result = curl_exec($ch);
