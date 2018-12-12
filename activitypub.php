@@ -109,6 +109,10 @@
 			'type' => 'boolean',
 			'default' => false
 		));
+		register_setting('wp_activitypub', 'wp_activitypub_global_name', array(
+			'type' => 'string',
+			'default' => 'all'
+		));
 		register_setting('wp_activitypub', 'wp_activitypub_global_pubkey', array(
 			'type' => 'string'
 		));
@@ -132,6 +136,10 @@
 			'type' => 'boolean',
 			'default' => false
 		));
+		register_setting('wp_activitypub', 'wp_activitypub_tags_prefix', array(
+			'type' => 'string',
+			'default' => 'tag_'
+		));
 		add_settings_field(
 			'wp_activitypub_tags',
 			__('Tag Users?', 'wp_activitypub'),
@@ -144,10 +152,26 @@
 				'wp_activitypub_custom_data' => 'custom'
 			]
 		);
+		add_settings_field(
+			'wp_activitypub_tags_prefix',
+			__('Tag User Prefix', 'wp_activitypub'),
+			'wp_activitypub_tags_cb',
+			'wp_activitypub',
+			'wp_activitypub_posters',
+			[
+				'label_for' => 'wp_activitypub_tags_prefix',
+				'class' => 'wp_activitypub_row',
+				'wp_activitypub_custom_data' => 'custom'
+			]
+			);
 		
 		register_setting('wp_activitypub', 'wp_activitypub_cats', array(
 			'type' => 'boolean',
 			'default' => false
+		));
+		register_setting('wp_activitypub', 'wp_activitypub_cats_prefix', array(
+			'type' => 'string',
+			'default' => 'cat_'
 		));
 		add_settings_field(
 			'wp_activitypub_cats',
@@ -214,6 +238,12 @@
 			'label' => 'Outbox',
 			'public' => true,
 			'supports' => array('title', 'editor', 'page-attributes')
+		));
+
+		register_post_type('like', array(
+			'label' => 'Like',
+			'public' => false,
+			'supports' => array('title', 'editor')
 		));
 	}
 	add_action('init', 'post_types_init');
