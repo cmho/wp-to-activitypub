@@ -432,12 +432,14 @@
 		global $user;
 		header('Content-type: application/activity+json');
 		$req = $_SERVER['REQUEST_URI'];
+		$query = array_map(function($c) {
+			return explode("=", $c);
+		}, explode('&', $_SERVER['QUERY_STRING']));
 		preg_match('/^\/u\/@([a-zA-Z0-9\-\_]+)\/?/', $req, $matches);
 		// parse it and see if it's an author url by our schema
 		if (count($matches) > 0) {
 			// get the user by slug
-			$user = get_user_by('slug', $matches[1]);
-			$users = get_users(array(
+			$user_query = array(
 				'role__in' => array('subscriber'),
 				'meta_query' => array(
 					array(
@@ -445,7 +447,13 @@
 						'compare' => 'EXISTS'
 					)
 				)
-			));
+			);
+			if (array_key_exists('page', $query)) {
+				$user_query['number'] = 10;
+				$user_query['paged'] = intval($query['page']);
+			}
+			$user = get_user_by('slug', $matches[1]);
+			$users = get_users($user_query);
 			$users = array_filter($users, function($x) {
 				global $user;
 				if (is_array(get_user_meta($x->ID, 'following', true))) {
@@ -458,9 +466,21 @@
 				'@context' => 'https://www.w3.org/ns/activitystreams',
 				'type' => 'OrderedCollection',
 				'totalItems' => count($users),
-				'id' => get_bloginfo('url').'/u/@'.$matches[1].'/followers',
-				'first' => get_bloginfo('url').'/u/@'.$matches[1].'/followers?page=1'
+				'id' => get_bloginfo('url').'/u/@'.$matches[1].'/followers'
 			);
+			if (array_key_exists('page', $query)) {
+				$content['next'] = get_bloginfo('url').'/u/@'.$matches[1].'/followers?page='(intval($query['page'])+1);
+				$content['partOf'] = get_bloginfo('url').'/u/@'.$matches[1].'/followers';
+				$content['type'] = 'OrderedCollectionPage';
+				$content['orderedItems'] = array_map(function($u) {
+					return get_user_meta($u->ID, 'ap_id', false);
+				}, $users);
+				if (intval($query['page']) != 1) {
+					$content['prev'] = get_bloginfo('url').'/u/@'.$matches[1].'/followers?page='(intval($query['page'])-1);
+				}
+			} else {
+				$content['first'] = get_bloginfo('url').'/u/@'.$matches[1].'/followers?page=1';
+			}
 			echo json_encode($content);
 			die(1);
 		}
@@ -595,6 +615,7 @@ EOT;
 							$u = wp_create_user($username, serialize(bin2hex(random_bytes(16))));
 							// initialize subscription list w/ requested account
 							add_user_meta($u, 'following', array($following));
+							add_user_meta($u, 'ap_id', $act->id);
 						} else {
 							// if the account alreaddy  exists, add the account to the subscription list
 							update_user_meta($u, 'following', array_push(get_user_meta($u, 'following'), $following));
