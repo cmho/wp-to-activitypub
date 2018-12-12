@@ -433,6 +433,7 @@
 		$matches;
 		preg_match('/^\/u\/@([a-zA-Z0-9\-\_]+)\/?/', $req, $matches);
 		// parse it and see if it's an author url by our schema
+		print_r($matches);
 		if (count($matches) > 0) {
 			// get the user by slug
 			$user = get_user_by('slug', $matches[1]);
