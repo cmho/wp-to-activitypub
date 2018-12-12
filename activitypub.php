@@ -431,6 +431,7 @@
 	function get_followers() {
 		header('Content-type: application/activity+json');
 		echo "hello world";
+		die(1);
 		$req = $_SERVER['REQUEST_URI'];
 		preg_match('/^\/u\/@([a-zA-Z0-9\-\_]+)\/?/', $req, $matches);
 		// parse it and see if it's an author url by our schema
@@ -996,7 +997,7 @@ EOT;
 					<th>Follows</th>
 					<td>
 						<select multiple name="follows" id="follows">
-							<?php foreach (get_user_meta($profileuser->ID, 'following') as $follower) : ?>
+							<?php foreach (get_user_meta($profileuser->ID, 'following', true) as $follower) : ?>
 								<option value="<?= $follower; ?>"><?= $follower; ?></option>
 							<?php endforeach; ?>
 						</select>
