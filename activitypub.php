@@ -727,7 +727,6 @@ EOT;
 			if ($query['offset']) {
 				$params['offset'] = $query['offset'];
 			}
-			print_r($matches);
 			if (count($matches) > 0 && $matches[1]) {
 				$user = $matches[1];
 				preg_match('/^tag_([a-zA-Z_\-0-9]+)/', $user, $tagmatch);
@@ -785,11 +784,13 @@ EOT;
 							'url' => wp_get_attachment_url($m->ID)
 						));
 					}
+					$post_date = new DateTime(get_the_date('c'), new \DateTimeZone('GMT'));
+					$date = $post_date->format('D, d M Y H:i:s T');
 					array_push($orderedItems, array(
 						'id' => get_the_permalink(),
 						'type' => 'Create',
 						'actor' => get_bloginfo('url').'/u/@'.$user,
-						'published' => get_the_date('r', $post),
+						'published' => $date,
 						'to' => array(
 							"https://www.w3.org/ns/activitystreams#Public"
 						),
@@ -801,7 +802,7 @@ EOT;
 							'type' => 'Note',
 							'summary' => get_the_excerpt($post),
 							'inReplyTo' => null,
-							'published' => get_the_date('r', $post),
+							'published' => $date,
 							'url' => get_the_permalink($post),
 							'attributedTo' => get_bloginfo('url').'/u/@'.$user,
 							'to' => array(
