@@ -433,7 +433,6 @@
 		$req = $_SERVER['REQUEST_URI'];
 		preg_match('/^\/u\/@([a-zA-Z0-9\-\_]+)\/?/', $req, $matches);
 		// parse it and see if it's an author url by our schema
-		print_r($matches);
 		if (count($matches) > 0) {
 			// get the user by slug
 			$user = get_user_by('slug', $matches[1]);
@@ -446,10 +445,9 @@
 					)
 				)
 			));
-			print_r($user);
 			print_r($users);
 			$users = array_filter($users, function($x) {
-				return in_array($x->user_login, get_user_meta($x->ID, 'following', true));
+				return in_array($user->user_login, get_user_meta($x->ID, 'following', true));
 			});
 			print_r($users);
 			die(1);
