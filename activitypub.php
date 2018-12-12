@@ -863,6 +863,7 @@ EOT;
 				'first' => get_bloginfo('url').'/u/@'.$user.'/outbox?page=true',
 				'last' => get_bloginfo('url').'/u/@'.$user.'/outbox?page=true&min=0'
 			);
+			echo json_encode($outbox);
 		}
 		die(1);
 	}
