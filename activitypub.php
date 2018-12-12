@@ -435,6 +435,8 @@
 		$query = array_map(function($c) {
 			return explode("=", $c);
 		}, explode('&', $_SERVER['QUERY_STRING']));
+		print_r($query);
+		die(1);
 		preg_match('/^\/u\/@([a-zA-Z0-9\-\_]+)\/?/', $req, $matches);
 		// parse it and see if it's an author url by our schema
 		if (count($matches) > 0) {
