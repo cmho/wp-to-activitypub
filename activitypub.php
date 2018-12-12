@@ -244,7 +244,7 @@
 						'https://www.w3.org/ns/activitystreams',
 						'https://w3id.org/security/v1',
 						array(
-							"manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+							"manuallyApprovesFollowers" => "as:manuallyApprovesFollowers",
 						)
 					],
 					'id' => get_bloginfo('url').'/u/@all',
@@ -276,7 +276,7 @@
 						'https://www.w3.org/ns/activitystreams',
 						'https://w3id.org/security/v1',
 						array(
-							"manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+							"manuallyApprovesFollowers" => "as:manuallyApprovesFollowers",
 						)
 					],
 					'id' => get_bloginfo('url').'/u/@tag_'.$tagmatches[1],
@@ -308,7 +308,7 @@
 						'https://www.w3.org/ns/activitystreams',
 						'https://w3id.org/security/v1',
 						array(
-							"manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+							"manuallyApprovesFollowers" => "as:manuallyApprovesFollowers",
 						)
 					],
 					'id' => get_bloginfo('url').'/u/@cat_'.$catmatches[1],
@@ -343,7 +343,7 @@
 						'https://www.w3.org/ns/activitystreams',
 						'https://w3id.org/security/v1',
 						array(
-							"manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+							"manuallyApprovesFollowers" => "as:manuallyApprovesFollowers",
 						)
 					],
 					'id' => get_bloginfo('url').'/u/@'.$user->user_login,
