@@ -677,7 +677,7 @@ EOT;
 								'Signature: '.$sig_str,
 						    'Date: '.$date,
 						    'Host: '.$domain,
-								'Content-Type: application/ld+json; profile="https://www.w3.org/ns/activitystreams'
+								'Content-Type: application/activity+json'
 							),
 						));
 						$result = curl_exec($ch);
