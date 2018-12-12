@@ -845,10 +845,10 @@ EOT;
 							'url' => get_the_permalink($post),
 							'attributedTo' => get_bloginfo('url').'/u/@'.$user,
 							'to' => array(
-								"https://www.w3.org/ns/activitystreams#Public"
+								get_bloginfo('url').'/u/@'.$user.'/followers'
 							),
 							'cc' => array(
-								get_bloginfo('url').'/u/@'.$user.'/followers'
+								"https://www.w3.org/ns/activitystreams#Public"
 							),
 							'sensitive' => get_post_meta($post->ID, 'sensitive', true),
 							'content' => get_the_content($post),
