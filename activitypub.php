@@ -819,7 +819,7 @@ EOT;
 						));
 					}
 					$post_date = new DateTime(get_the_date('c'), new \DateTimeZone('GMT'));
-					$date = $post_date->format('D, d M Y H:i:s T');
+					$date = $post_date->format('Y-m-d\TH:i:s\Z');
 					$taglist = get_the_terms($post->ID, 'post_tag');
 					$tags = array();
 					foreach ($taglist as $t) {
