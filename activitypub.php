@@ -446,6 +446,16 @@
 		// close request
 	}
 	add_action('wp_headers', 'redirect_to_actor');
+
+	function redirect_to_status() {
+		if (is_single() && get_post_type() == 'post' && in_array('application/activity+json', explode(",", getallheaders()['Accept']))) {
+			global $post;
+			header('Content-type: application/activity+json');
+			echo get_post_meta($post->ID, 'object', true);
+			die(1);
+		}
+	}
+	add_action('wp_headers', 'redirect_to_status');
 	
 	function add_head_links() {
 		if (is_author()) {
