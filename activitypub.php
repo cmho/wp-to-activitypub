@@ -427,11 +427,6 @@
 					'inbox' => get_bloginfo('url').'/inbox',
 					'outbox' => get_bloginfo('url').'/u/@'.$user->user_login.'/outbox',
 					'manuallyApprovesFollowers' => false,
-					'icon' => array(
-						'type' => 'Image',
-						'mediaType' => 'image/jpeg',
-						'url' => get_site_icon_url()
-					),
 					'summary' => get_user_meta($user->ID, 'description', true),
 					'publicKey' => array(
 						'id' => get_bloginfo('url').'/u/@'.$user->user_login.'#main-key',
@@ -439,6 +434,20 @@
 						'publicKeyPem' => $safe_key
 					)
 				);
+				if (get_avatar_url()) {
+					preg_match('/\.([a-zA-Z]+)$/', get_avatar_url($user->ID), $ext);
+					$ret['icon'] = array(
+						'type' => 'Image',
+						'mediaType' => wp_get_mime_types()[$ext[1]],
+						'url' => get_avatar_url($user->ID)
+					);
+				} else {
+					$ret['icon'] = array(
+						'type' => 'Image',
+						'mediaType' => 'image/jpeg',
+						'url' => get_site_icon_url()
+					);
+				}
 				echo json_encode($ret);
 				die(1);
 			}
