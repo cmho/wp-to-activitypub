@@ -447,15 +447,15 @@
 	}
 	add_action('wp_headers', 'redirect_to_actor');
 
-	function redirect_to_status() {
-		global $post;
+	function redirect_to_status($h, $t) {
 		if (is_single() && get_post_type() == 'post' && in_array('application/activity+json', explode(",", getallheaders()['Accept']))) {
 			header('Content-type: application/activity+json');
+			print_r($t);
 			echo get_post_meta($post->ID, 'object', true);
 			die(1);
 		}
 	}
-	add_action('send_headers', 'redirect_to_status');
+	add_action('wp_headers', 'redirect_to_status');
 	
 	function add_head_links() {
 		if (is_author()) {
