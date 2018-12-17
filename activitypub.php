@@ -434,7 +434,7 @@
 						'publicKeyPem' => $safe_key
 					)
 				);
-				if (get_avatar_url()) {
+				if (get_avatar_url($user->ID)) {
 					preg_match('/\.([a-zA-Z]+)$/', get_avatar_url($user->ID), $ext);
 					$ret['icon'] = array(
 						'type' => 'Image',
