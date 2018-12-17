@@ -455,7 +455,7 @@
 			die(1);
 		}
 	}
-	add_action('wp_headers', 'redirect_to_status');
+	add_action('send_headers', 'redirect_to_status');
 	
 	function add_head_links() {
 		if (is_author()) {
