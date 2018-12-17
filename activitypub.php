@@ -76,19 +76,42 @@
 		<?php
 	}
 	
+	function wp_activitypub_global_name_cb($args) {
+		$options = get_option('wp_activitypub_global_name');
+		?>
+		<input type="text" name="wp_activitypub_global_name" value="<?= $options; ?>" />
+		<?php
+	}
+	
 	function wp_activitypub_tags_cb($args) {
 		$options = get_option('wp_activitypub_tags');
+		$prefix = get_option('wp_activitypub_tags_prefix');
 		?>
 		<label for="wp_activitypub_tags"><input type="checkbox" name="wp_activitypub_tags" value="true"<?= $options ? ' checked="checked"' : ''; ?> /> Enable tag users?</label>
-		<p class="description">This will enable federation users to follow tag-[tagname]@yourdomain.com.</p>
+		<p class="description">This will enable federation users to follow <?= $prefix; ?>[tagname]@yourdomain.com.</p>
+		<?php
+	}
+	
+	function wp_activitypub_tags_prefix_cb($args) {
+		$options = get_option('wp_activitypub_tags_prefix');
+		?>
+		<input type="text" name="wp_activitypub_tags_prefix" value="<?= $options; ?>" />
 		<?php
 	}
 	
 	function wp_activitypub_cats_cb($args) {
 		$options = get_option('wp_activitypub_cats');
+		$prefix = get_option('wp_activitypub_cats_prefix');
 		?>
 		<label for="wp_activitypub_cats"><input type="checkbox" name="wp_activitypub_cats" value="true"<?= $options ? ' checked="checked"' : ''; ?> /> Enable category users?</label>
-		<p class="description">This will enable federation users to follow cat-[categoryname]@yourdomain.com.</p>
+		<p class="description">This will enable federation users to follow <?= $prefix; ?>[categoryname]@yourdomain.com.</p>
+		<?php
+	}
+	
+	function wp_activitypub_cats_prefix_cb($args) {
+		$options = get_option('wp_activitypub_cats_prefix');
+		?>
+		<input type="text" name="wp_activitypub_cats_prefix" value="<?= $options; ?>" />
 		<?php
 	}
 	
@@ -131,6 +154,18 @@
 				'wp_activitypub_custom_data' => 'custom'
 			]
 		);
+		add_settings_field(
+			'wp_activitypub_global_name',
+			__('Global User Name', 'wp_activitypub'),
+			'wp_activitypub_global_name_cb',
+			'wp_activitypub',
+			'wp_activitypub_posters',
+			[
+				'label_for' => 'wp_activitypub_global_name',
+				'class' => 'wp_activitypub_row',
+				'wp_activitypub_custom_data' => 'custom'
+			]
+		);
 		
 		register_setting('wp_activitypub', 'wp_activitypub_tags', array(
 			'type' => 'boolean',
@@ -155,7 +190,7 @@
 		add_settings_field(
 			'wp_activitypub_tags_prefix',
 			__('Tag User Prefix', 'wp_activitypub'),
-			'wp_activitypub_tags_cb',
+			'wp_activitypub_tags_prefix_cb',
 			'wp_activitypub',
 			'wp_activitypub_posters',
 			[
@@ -163,7 +198,7 @@
 				'class' => 'wp_activitypub_row',
 				'wp_activitypub_custom_data' => 'custom'
 			]
-			);
+		);
 		
 		register_setting('wp_activitypub', 'wp_activitypub_cats', array(
 			'type' => 'boolean',
@@ -181,6 +216,18 @@
 			'wp_activitypub_posters',
 			[
 				'label_for' => 'wp_activitypub_cats',
+				'class' => 'wp_activitypub_row',
+				'wp_activitypub_custom_data' => 'custom'
+			]
+		);
+		add_settings_field(
+			'wp_activitypub_cats_prefix',
+			__('Cat User Prefix', 'wp_activitypub'),
+			'wp_activitypub_cats_prefix_cb',
+			'wp_activitypub',
+			'wp_activitypub_posters',
+			[
+				'label_for' => 'wp_activitypub_cats_prefix',
 				'class' => 'wp_activitypub_row',
 				'wp_activitypub_custom_data' => 'custom'
 			]
@@ -272,10 +319,7 @@
 				$ret = array(
 					'@context' => [
 						'https://www.w3.org/ns/activitystreams',
-						'https://w3id.org/security/v1',
-						array(
-							"manuallyApprovesFollowers" => "as:manuallyApprovesFollowers",
-						)
+						'https://w3id.org/security/v1'
 					],
 					'id' => get_bloginfo('url').'/u/@all',
 					'name' => get_bloginfo('name'),
@@ -374,10 +418,7 @@
 				$ret = array(
 					'@context' => [
 						'https://www.w3.org/ns/activitystreams',
-						'https://w3id.org/security/v1',
-						array(
-							"manuallyApprovesFollowers" => "as:manuallyApprovesFollowers",
-						)
+						'https://w3id.org/security/v1'
 					],
 					'id' => get_bloginfo('url').'/u/@'.$user->user_login,
 					'type' => 'Person',
@@ -391,7 +432,7 @@
 						'mediaType' => 'image/jpeg',
 						'url' => get_site_icon_url()
 					),
-					'summary' => get_bloginfo('description'),
+					'summary' => get_user_meta($user->ID, 'description', true),
 					'publicKey' => array(
 						'id' => get_bloginfo('url').'/u/@'.$user->user_login.'#main-key',
 						'owner' => get_bloginfo('url').'/u/@'.$user->user_login,
@@ -743,7 +784,6 @@ EOT;
 	
 	function get_outbox() {
 		header('Content-type: application/activity+json');
-		header("HTTP/1.1 200 OK");
 		$req = $_SERVER['REQUEST_URI'];
 		$q = explode('&', $_SERVER['QUERY_STRING']);
 		$query = array();
@@ -896,15 +936,11 @@ EOT;
 			}
 			$posts = get_posts($params);
 			$outbox = array(
-				'@context' => array(
-					"https://www.w3.org/ns/activitystreams",
-        	"https://w3id.org/security/v1"
-				),
+				'@context' => 'https://www.w3.org/ns/activitystreams',
 				'id' => get_bloginfo('url').'/u/@'.$user.'/outbox',
 				'type' => 'OrderedCollection',
 				'totalItems' => count($posts),
-				'first' => get_bloginfo('url').'/u/@'.$user.'/outbox?page=true',
-				'last' => get_bloginfo('url').'/u/@'.$user.'/outbox?page=true&min=0'
+				'first' => get_bloginfo('url').'/u/@'.$user.'/outbox?page=true'
 			);
 			echo json_encode($outbox);
 		}
@@ -1165,6 +1201,7 @@ EOT;
 				)
 			));
 			
+			// if there are domain blocks, filter out any users that are in those domains
 			if (count($domains) > 0) {
 				array_push($subscribers['meta_query'], array(
 					'key' => 'domain',
@@ -1173,23 +1210,86 @@ EOT;
 				));
 			}
 			
+			// get the author info
+			$user = get_user_by('ID', $post->post_author);
+			
 			// replace newlines with \n because json doesn't like them
 			$filtered_content = preg_replace('/\n/', '\n', get_the_content($post_id));
-			// set up message object
-			$message = '{"@context": "https://www.w3.org/ns/activitystreams","id": "'.get_permalink($post_id).'", "type": "Create", "actor": "'.get_bloginfo('url').'/u/@'.get_the_author_meta('user_login').'", "object": {"id": "'.get_permalink($post_id).'", "type": "Note", "published": "'.get_the_date('D, d M Y H:i:s \G\M\T').'", "attributedTo": "'.get_bloginfo('url').'/u/@'.get_the_author_meta('user_login').'", "content": "'.filtered_content().'", "to": "https://www.w3.org/ns/activitystreams#Public"}}';
+			
+			// format the post date like AP expects
+			$post_date = new DateTime(get_the_date('c', $post_id), new \DateTimeZone('GMT'));
+			$date = $post_date->format('Y-m-d\TH:i:s\Z');
+			
+			// create message data to send to our followers
+			$message = array(
+				'@context' => array(
+					'https://www.w3.org/ns/activitystreams'
+				),
+				'id' => get_permalink($post_id),
+				'type' => 'Create',
+				'actor' => get_bloginfo('url').'/u/@'.$user->user_login,
+				'published' => $date,
+				'to' => array(
+					'https://www.w3.org/ns/activitystreams#Public'
+				),
+				'cc' => array(
+					get_bloginfo('url').'/u/@'.$user->user_login.'/followers'
+				),
+				'object' => array(
+					'id' => get_permalink($post_id),
+					'type' => 'Note',
+					'published' => $date,
+					'summary' =>  get_the_excerpt($post_id),
+					'attributedTo' => get_bloginfo('url').'/u/@'.$user->user_login,
+					'content' => get_the_content($post_id),
+					'to' => array(
+						'https://www.w3.org/ns/activitystreams#Public'
+					),
+					'cc' => array(
+						get_bloginfo('url').'/u/@'.$user->user_login.'/followers'
+					)
+				)
+			);
+			
+			// hold onto object data in case we need to do an update or delete or w/e later
+			update_post_meta($post_id, 'object', $message['object']);
+			
 			foreach ($subscribers as $subscriber) {
 				// post message to subscriber domains
+				$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
+				$key = trim(get_user_meta($user->ID, 'privkey', true));
+				$keyval = <<< EOT
+$key
+EOT;
+				$pkey = openssl_get_privatekey($keyval);
+				openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
+				$sig_encode = base64_encode($signature);
+				$sig_str = "keyId=\"".get_bloginfo('url')."/u/@".$following."#main-key\",headers=\"(request-target) host date\",signature=\"" .$sig_encode. "\"";
+				$domain = get_user_meta($subscriber->ID, 'domain', true);
 				$ch = curl_init();
-				$fields = array(
-					'body' => $message
-				);
-				curl_setopt($ch, CURLOPT_URL, get_user_meta($subscriber->ID, 'inbox', true));
-				curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-				curl_setopt($ch, CURLOPT_POST, count($fields));
-				curl_setopt($ch, CURLOPT_POSTFIELDS, 'body='.$message);
+				curl_setopt_array($ch, array(
+					CURLOPT_URL => get_user_meta($subscriber->ID, 'inbox', true),
+					CURLOPT_RETURNTRANSFER => true,
+					CURLOPT_POST => 1,
+					CURLOPT_POSTFIELDS => json_encode($message),
+					CURLOPT_HTTPHEADER => array(
+						'Signature: '.$sig_str,
+				    'Date: '.$date,
+				    'Host: '.$domain,
+						'Content-Type: application/activity+json',
+					)
+				));
 				$result = curl_exec($ch);
 				curl_close($ch);
 			}
+			
+			// if it's in any tags or categories, get subscribers for those
+			// send to any subscribers w/ tag or category key
+			
+			// send to people who follow the 'all' actor with the all key?
+			// i guess????
+			
+			// wait i can use Announce for this.
 		}
 		
 		return;
