@@ -832,7 +832,7 @@ EOT;
 						"https://www.w3.org/ns/activitystreams",
 		        "https://w3id.org/security/v1"
 					),
-					'id' => get_bloginfo('url').'/u/@'.$matches[1].'/outbox',
+					'id' => get_bloginfo('url').'/u/@'.$matches[1].'/outbox?page=true'.($query['offset'] ? '&offset='.$query['offset'] : ''),
 					'type' => 'OrderedCollectionPage',
 					'next' => get_bloginfo('url').'/u/@'.$matches[1].'/outbox?page=true&offset='.($query['offset'] ? intval($query['offset'])+25 : 25),
 					'partOf' => get_bloginfo('url').'/u/@'.$matches[1].'/outbox'
