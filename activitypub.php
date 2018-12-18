@@ -247,15 +247,59 @@
 	}
 	add_action('admin_menu', 'ap_options_page');
 	
+	function wp_activitypub_meta($post)
+	{
+    ?>
+    <table>
+	    <tr class="wp_activitypub_row">
+				<th scope="row">
+					<label for="sensitive">Sensitive Content?</label>
+				</th>
+				<td>
+					<input type="checkbox" name="sensitive" id="sensitive"<?= get_post_meta($post->ID, 'sensitive', true) ? ' checked="checked"' : ''; ?>>
+				</td>
+	    </tr>
+		  <tr class="wp_activitypub_row">
+			  <th scope="row">
+					<label for="content_warning">Content Warning?</label>
+			  </th>
+			  <td>
+					<input type="text" name="content_warning" id="content_warning" value="<?= get_post_meta($post->ID, 'content_warning', true); ?>">
+			  </td>
+		  </tr>
+    </table>
+    <?php
+	}
+	function adding_custom_meta_boxes( $post ) {
+    add_meta_box( 
+        'wp-activitypub-meta',
+        __( 'ActivityPub Information' ),
+        'wp_activitypub_meta',
+        'post',
+        'normal',
+        'default'
+    );
+	}
+	add_action( 'add_meta_boxes_post', 'adding_custom_meta_boxes' );
+	
 	function rewrite_init() {
 		// set up some nicer rewrite urls
-		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/outbox$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]', 'top');
-		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/outbox\??([a-zA-Z0-9_\&\=]+)?$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]&matches[2]', 'top');
+		$tags_prefix = get_option('wp_activitypub_tags_prefix', true) ? get_option('wp_activitypub_tags_prefix', true) : 'tag_';
+		$cats_prefix = get_option('wp_activitypub_cats_prefix', true) ? get_option('wp_activitypub_cats_prefix', true) : 'cat_';
+		$all_name = get_option('wp_activitypub_global', true) ? get_option('wp_activitypub_global', true) : 'all';
+		add_rewrite_rule('^u/@([a-zA-Z0-9\-_]+)/outbox$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]', 'top');
+		add_rewrite_rule('^u/@([a-zA-Z0-9\-_]+)/outbox\??([a-zA-Z0-9_\&\=]+)?$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]&matches[2]', 'top');
 		add_rewrite_rule('^inbox/?$', 'index.php?rest_route=/ap/v1/inbox', 'top');
-		add_rewrite_rule('^u/@all$', 'index.php', 'top');
+		add_rewrite_rule('^u/@'.$all_name.'/outbox$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]', 'top');
+		add_rewrite_rule('^u/@'.$all_name.'/outbox\??([a-zA-Z0-9_\&\=]+)?$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]&matches[2]', 'top');
+		add_rewrite_rule('^u/@'.$all_name.'$', 'index.php', 'top');
 		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/followers$', 'index.php?rest_route=/ap/v1/followers&acct=$matches[1]', 'top');
-		add_rewrite_rule('^u/@tag_([a-zA-Z0-9\-]+)$', 'index.php?tag=$matches[1]', 'top');
-		add_rewrite_rule('^u/@cat_([a-zA-Z0-9\-]+)$', 'index.php?category_name=$matches[1]', 'top');
+		add_rewrite_rule('^u/@'.$tags_prefix.'([a-zA-Z0-9\-_]+)/outbox$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]', 'top');
+		add_rewrite_rule('^u/@'.$cats_prefix.'([a-zA-Z0-9\-_]+)/outbox$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]', 'top');
+		add_rewrite_rule('^u/@'.$tags_prefix.'([a-zA-Z0-9\-_]+)/outbox\??([a-zA-Z0-9_\&\=]+)?$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]&matches[2]', 'top');
+		add_rewrite_rule('^u/@'.$cats_prefix.'([a-zA-Z0-9\-_]+)/outbox\??([a-zA-Z0-9_\&\=]+)?$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]&matches[2]', 'top');
+		add_rewrite_rule('^u/@'.$tags_prefix.'([a-zA-Z0-9\-_]+)$', 'index.php?tag=$matches[1]', 'top');
+		add_rewrite_rule('^u/@'.$cats_prefix.'([a-zA-Z0-9\-_]+)$', 'index.php?category_name=$matches[1]', 'top');
 		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)$', 'index.php?author_name=$matches[1]', 'top');
 		add_rewrite_rule('^\.well-known/([a-zA-Z0-9\-\?\=\@\%\.]+)$', 'index.php?rest_route=/ap/v1/$matches[1]', 'top');
 	}
@@ -789,7 +833,18 @@ EOT;
 						$user = get_user_by('slug', $username."@".$domain);
 						wp_delete_user($user->ID);
 						// delete user from database
-					} 
+					} elseif ($type == 'Like') {
+						$params = array(
+							'post_type' => 'like',
+							'post_content' => json_encode($entityBody),
+							'post_status' => 'publish',
+							'meta_input' => array(
+								'object' => $entityBody->object,
+								'activity_id' => $entityBody->id
+							)
+						);
+						wp_insert_post($params);
+					}
 				}
 			//} else {
 			//	header("HTTP/1.1 401 Request signature could not be verified");
@@ -888,7 +943,7 @@ EOT;
 							'name' => '#'.$t->slug
 						));
 					}
-					array_push($orderedItems, array(
+					$new = array(
 						'id' => get_the_permalink($post),
 						'type' => 'Create',
 						'actor' => get_bloginfo('url').'/u/@'.$user,
@@ -902,7 +957,6 @@ EOT;
 						'object' => array(
 							'id' => get_the_permalink($post),
 							'type' => 'Note',
-							'summary' => get_the_excerpt($post),
 							'inReplyTo' => null,
 							'published' => $date,
 							'url' => get_the_permalink($post),
@@ -914,11 +968,18 @@ EOT;
 								get_bloginfo('url').'/u/@'.$user.'/followers'
 							),
 							'sensitive' => get_post_meta($post->ID, 'sensitive', true),
-							'content' => get_the_content($post),
+							'content' => get_the_content(),
 							'attachment' => $attachments,
 							'tag' => $tags
 						)
-					));
+					);
+					if (get_post_meta($post->ID, 'content_warning')) {
+						$new['object']['summary'] = get_post_meta($post_id, 'content_warning', true);
+					} 
+					if (get_post_meta($post->ID, 'sensitive', true) === true) {
+						$new['object']['sensitive'] = true;
+					}
+					array_push($orderedItems, $new);
 				}
 				wp_reset_postdata();
 				$outbox['orderedItems'] = $orderedItems;
@@ -937,7 +998,7 @@ EOT;
 					$params['tax_query'] = array(
 						array(
 							'taxonomy' => 'post_tag',
-							'term' => $tagmatch[1],
+							'terms' => $tagmatch[1],
 							'field' => 'slug'
 						)
 					);
@@ -945,7 +1006,7 @@ EOT;
 					$params['tax_query'] = array(
 						array(
 							'taxonomy' => 'category',
-							'term' => $catmatch[1],
+							'terms' => $catmatch[1],
 							'field' => 'slug'
 						)
 					);
@@ -1010,6 +1071,7 @@ EOT;
 	add_action('create_term', 'add_term_keys');
 	
 	function add_global_pkeys() {
+		$wp_rewrite->flush_rules();
 		if (get_option('wp_activitypub_global') && get_option('wp_activitypub_global_pubkey') == '') {
 			$privKey;
 			$res = openssl_pkey_new(array(
@@ -1026,6 +1088,7 @@ EOT;
 	add_action('update_option_wp_activitypub_global', 'add_global_pkeys');
 	
 	function add_tag_pkeys() {
+		$wp_rewrite->flush_rules();
 		if (get_option('wp_activitypub_tags')) {
 			$tags = get_terms(array(
 				'taxonomy' => 'post_tag',
@@ -1050,6 +1113,7 @@ EOT;
 	add_action('update_option_wp_activitypub_tags', 'add_tag_pkeys');
 	
 	function add_cat_pkeys() {
+		$wp_rewrite->flush_rules();
 		if (get_option('wp_activitypub_cats')) {
 			$cats = get_terms(array(
 				'taxonomy' => 'category',
@@ -1182,6 +1246,7 @@ EOT;
 	function send_messages($post_id) {
 		global $post;
 		$post = get_post($post_id);
+		setup_postdata($post);
 		// only do the stuff if this is a regular blog post
 		if (get_post_type() == 'post') {
 			// get all domain blocks and reduce down to an array of just titles (aka the actual domain)
@@ -1195,6 +1260,9 @@ EOT;
 					return $x->post_title;
 				});
 			}
+			
+			update_post_meta($post_id, 'sensitive', $_POST['sensitive'] ? true : false);
+			update_post_meta($post_id, 'content_warning', $_POST['content_warning']);
 			
 			// get a list of all subscribers who are not on a blocked domain and who have a valid activitypub webfinger username and who haven't been suspended
 			$subscribers = get_users(array(
@@ -1236,8 +1304,28 @@ EOT;
 			$filtered_content = preg_replace('/\n/', '\n', get_the_content($post_id));
 			
 			// format the post date like AP expects
-			$post_date = new DateTime(get_the_date('c', $post_id), new \DateTimeZone('GMT'));
-			$date = $post_date->format('Y-m-d\TH:i:s\Z');
+			$post_date = new DateTime(get_the_date('c', $post_id));
+			$post_date->setTimezone(new \DateTimeZone('GMT'));
+			$date = $post_date->format('D, d M Y H:i:s T');
+			
+			$media = get_attached_media('image', $post_id);
+			$attachments = array();
+			foreach ($media as $m) {
+				array_push($attachments, array(
+					'type' => 'Image',
+					'content' => wp_get_attachment_caption($m->ID),
+					'url' => wp_get_attachment_url($m->ID)
+				));
+			}
+			$taglist = get_the_terms($post_id, 'post_tag');
+			$tags = array();
+			foreach ($taglist as $t) {
+				array_push($tags, array(
+					'type' => 'Hashtag',
+					'href' => get_bloginfo('url').'/tag/'.$t->slug,
+					'name' => '#'.$t->slug
+				));
+			}
 			
 			// create message data to send to our followers
 			$message = array(
@@ -1258,17 +1346,25 @@ EOT;
 					'id' => get_permalink($post_id),
 					'type' => 'Note',
 					'published' => $date,
-					'summary' =>  get_the_excerpt($post_id),
 					'attributedTo' => get_bloginfo('url').'/u/@'.$user->user_login,
-					'content' => get_the_content($post_id),
+					'content' => apply_filters('the_content',get_the_content()),
 					'to' => array(
 						'https://www.w3.org/ns/activitystreams#Public'
 					),
 					'cc' => array(
 						get_bloginfo('url').'/u/@'.$user->user_login.'/followers'
-					)
+					),
+					'attachment' => $attachments,
+					'tag' => $tags
 				)
 			);
+			
+			if (get_post_meta($post_id, 'content_warning')) {
+				$message['object']['summary'] = get_post_meta($post_id, 'content_warning', true);
+			} 
+			if (get_post_meta($post_id, 'sensitive', true) === true) {
+				$message['object']['sensitive'] = true;
+			}
 			
 			// hold onto object data in case we need to do an update or delete or w/e later
 			update_post_meta($post_id, 'object', $message['object']);
@@ -1283,7 +1379,7 @@ EOT;
 				$pkey = openssl_get_privatekey($keyval);
 				openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
 				$sig_encode = base64_encode($signature);
-				$sig_str = "keyId=\"".get_bloginfo('url')."/u/@".$following."#main-key\",headers=\"(request-target) host date\",signature=\"" .$sig_encode. "\"";
+				$sig_str = "keyId=\"".get_bloginfo('url')."/u/@".$user->user_login."#main-key\",headers=\"(request-target) host date\",signature=\"" .$sig_encode. "\"";
 				$domain = get_user_meta($subscriber->ID, 'domain', true);
 				$ch = curl_init();
 				curl_setopt_array($ch, array(
@@ -1298,6 +1394,12 @@ EOT;
 						'Content-Type: application/activity+json',
 					)
 				));
+			
+				wp_insert_post(array(
+					'post_content' => json_encode($message)."\n\n".$sig_str."\n\n".$domain,
+					'post_status' => 'publish',
+					'post_type' => 'outboxitem'
+				));
 				$result = curl_exec($ch);
 				curl_close($ch);
 			}
@@ -1309,6 +1411,7 @@ EOT;
 			// i guess????
 			
 			// wait i can use Announce for this.
+			wp_reset_postdata();
 		}
 		
 		return;
