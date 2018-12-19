@@ -106,25 +106,31 @@ EOT;
 							die(1);
 							return;
 						}
-						$follow_user = get_user_by('slug', $following);
 						// otherwise, add user account and return accept notice
+						$follow_user = get_user_by('slug', $following);
+						
+						// check if we've already created a local account for this user
 						$user_check = get_user_by('slug', $username);
+						
 						if (!$user_check) {
 							// create new user account if it doesn't exist
-							$u = wp_create_user($username, serialize(bin2hex(random_bytes(16))));
+							$user_check = wp_create_user($username, serialize(bin2hex(random_bytes(16))));
 							// initialize subscription list w/ requested account
-							add_user_meta($u, 'following', array($following));
-							add_user_meta($u, 'ap_id', $act->id);
+							add_user_meta($user_check, 'following', array($following));
+							add_user_meta($user_check, 'ap_id', $act->id);
 						} else {
 							// if the account alreaddy  exists, add the account to the subscription list
-							update_user_meta($u, 'following', array_push(get_user_meta($u, 'following'), $following));
+							$follows = get_user_meta($user_check, 'following', true);
+							array_push(get_user_meta($follows, 'following'), $following)
+							update_user_meta($user_check, 'following', $follows);
 						}
+						
 						// store inbox url, preferred username, domain, public key, actor for reference purposes
-						update_user_meta($u, 'inbox', $inbox);
-						update_user_meta($u, 'preferred_username', $act->preferredUsername);
-						update_user_meta($u, 'domain', $domain);
-						update_user_meta($u, 'pubkey', $act->publicKey->publicKeyPem);
-						update_user_meta($u, 'actor_info', json_encode($act));
+						update_user_meta($user_check, 'inbox', $inbox);
+						update_user_meta($user_check, 'preferred_username', $act->preferredUsername);
+						update_user_meta($user_check, 'domain', $domain);
+						update_user_meta($user_check, 'pubkey', $act->publicKey->publicKeyPem);
+						update_user_meta($user_check, 'actor_info', json_encode($act));
 						
 						// create acceptance object
 						$p = wp_insert_post(array(
