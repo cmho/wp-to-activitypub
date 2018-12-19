@@ -287,6 +287,8 @@
 		$tags_prefix = get_option('wp_activitypub_tags_prefix', true) ? get_option('wp_activitypub_tags_prefix', true) : 'tag_';
 		$cats_prefix = get_option('wp_activitypub_cats_prefix', true) ? get_option('wp_activitypub_cats_prefix', true) : 'cat_';
 		$all_name = get_option('wp_activitypub_global', true) ? get_option('wp_activitypub_global', true) : 'all';
+		add_rewrite_rule('^[a-zA-Z0-9\/\-_]+/likes$', 'index.php?rest_route=/ap/v1/likes', 'top');
+		add_rewrite_rule('^[a-zA-Z0-9\/\-_]+/shares$', 'index.php?rest_route=/ap/v1/shares', 'top');
 		add_rewrite_rule('^u/@([a-zA-Z0-9\-_]+)/outbox$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]', 'top');
 		add_rewrite_rule('^u/@([a-zA-Z0-9\-_]+)/outbox\??([a-zA-Z0-9_\&\=]+)?$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]&matches[2]', 'top');
 		add_rewrite_rule('^inbox/?$', 'index.php?rest_route=/ap/v1/inbox', 'top');
@@ -336,6 +338,13 @@
 			'public' => false,
 			'supports' => array('title', 'editor')
 		));
+		
+		register_post_type('share', array(
+			'label' => 'Share',
+			'public' => false,
+			'supports' => array('title', 'editor')
+		));
+		
 	}
 	add_action('init', 'post_types_init');
 	
@@ -354,23 +363,22 @@
 				$acct = $matches2[1];
 			}
 			// check if this is tag user, cat user, or a global user
-			preg_match('/tag_([a-zA-Z0-9\-]+)$/', $acct, $tagmatches);
-			preg_match('/cat_([a-zA-Z0-9\-]+)$/', $acct, $catmatches);
-			preg_match('/all$/', $acct, $globalmatches);
-			if (count($globalmatches) > 0) {
-				//$safe_key = preg_replace('/\n/', '\n', trim(get_option('wp_activitypub_global_pubkey')));
+			preg_match('/'.(get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').'([a-zA-Z0-9\-]+)$/', $acct, $tagmatches);
+			preg_match('/'.(get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').'([a-zA-Z0-9\-]+)$/', $acct, $catmatches);
+			preg_match('/'.(get_option('wp_activitypub_global_name') ? get_option('wp_activitypub_global_name') : 'all').'$/', $acct, $globalmatches);
+			if (get_option('wp_activitypub_global') && count($globalmatches) > 0) {
 				$safe_key = trim(get_option('wp_activitypub_global_pubkey'));
 				$ret = array(
 					'@context' => [
 						'https://www.w3.org/ns/activitystreams',
 						'https://w3id.org/security/v1'
 					],
-					'id' => get_bloginfo('url').'/u/@all',
+					'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_global_name') ? get_option('wp_activitypub_global_name') : 'all'),
 					'name' => get_bloginfo('name'),
 					'type' => 'Person',
-					'preferredUsername' => 'all',
+					'preferredUsername' => (get_option('wp_activitypub_global_name') ? get_option('wp_activitypub_global_name') : 'all'),
 					'inbox' => get_bloginfo('url').'/inbox',
-					'outbox' => get_bloginfo('url').'/u/@all/outbox',
+					'outbox' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_global_name') ? get_option('wp_activitypub_global_name') : 'all').'/outbox',
 					'manuallyApprovesFollowers' => false,
 					'icon' => array(
 						'type' => 'Image',
@@ -379,14 +387,14 @@
 					),
 					'summary' => get_bloginfo('description'),
 					'publicKey' => array(
-						'id' => get_bloginfo('url').'/u/@all#main-key',
-						'owner' => get_bloginfo('url').'/u/@all',
+						'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_global_name') ? get_option('wp_activitypub_global_name') : 'all').'#main-key',
+						'owner' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_global_name') ? get_option('wp_activitypub_global_name') : 'all'),
 						'publicKeyPem' => $safe_key
 					)
 				);
 				echo json_encode($ret);
 				die(1);
-			} elseif (count($tagmatches) > 0) {
+			} elseif (get_option('wp_activitypub_tags') && count($tagmatches) > 0) {
 				$tag = get_term_by('slug', $tagmatches[1], 'post_tag');
 				//$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($tag->term_id, 'pubkey', true)));
 				$safe_key = trim(get_term_meta($tag->term_id, 'pubkey', true));
@@ -398,12 +406,12 @@
 							"manuallyApprovesFollowers" => "as:manuallyApprovesFollowers",
 						)
 					],
-					'id' => get_bloginfo('url').'/u/@tag_'.$tagmatches[1],
+					'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').$tagmatches[1],
 					'type' => 'Person',
 					'name' => get_bloginfo('name').": ".$tag->name,
-					'preferredUsername' => 'tag_'.$tagmatches[1],
+					'preferredUsername' => (get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').$tagmatches[1],
 					'inbox' => get_bloginfo('url').'/inbox',
-					'outbox' => get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'/outbox',
+					'outbox' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').$tagmatches[1].'/outbox',
 					'manuallyApprovesFollowers' => false,
 					'icon' => array(
 						'type' => 'Image',
@@ -412,14 +420,14 @@
 					),
 					'summary' => get_bloginfo('description'),
 					'publicKey' => array(
-						'id' => get_bloginfo('url').'/u/@tag_'.$tagmatches[1].'#main-key',
-						'owner' => get_bloginfo('url').'/u/@tag_'.$tagmatches[1],
+						'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').$tagmatches[1].'#main-key',
+						'owner' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').$tagmatches[1],
 						'publicKeyPem' => $safe_key
 					)
 				);
 				echo json_encode($ret);
 				die(1);
-			} elseif (count($catmatches) > 0) {
+			} elseif (get_option('wp_activitypub_cats_prefix') && count($catmatches) > 0) {
 				$cat = get_term_by('slug', $catmatches[1], 'category');
 				//$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($cat->term_id, 'pubkey', true)));
 				$safe_key = trim(get_term_meta($cat->term_id, 'pubkey', true));
@@ -431,12 +439,12 @@
 							"manuallyApprovesFollowers" => "as:manuallyApprovesFollowers",
 						)
 					],
-					'id' => get_bloginfo('url').'/u/@cat_'.$catmatches[1],
+					'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').$catmatches[1],
 					'type' => 'Person',
 					'name' => get_bloginfo('name').": ".$cat->name,
-					'preferredUsername' => 'cat_'.$catmatches[1],
+					'preferredUsername' => (get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').$catmatches[1],
 					'inbox' => get_bloginfo('url').'/inbox',
-					'outbox' => get_bloginfo('url').'/u/@cat_'.$catmatches[1].'/outbox',
+					'outbox' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').$catmatches[1].'/outbox',
 					'manuallyApprovesFollowers' => false,
 					'icon' => array(
 						'type' => 'Image',
@@ -445,8 +453,8 @@
 					),
 					'summary' => get_bloginfo('description'),
 					'publicKey' => array(
-						'id' => get_bloginfo('url').'/u/@cat_'.$catmatches[1].'#main-key',
-						'owner' => get_bloginfo('url').'/u/@cat_'.$catmatches[1],
+						'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').$catmatches[1].'#main-key',
+						'owner' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').$catmatches[1],
 						'publicKeyPem' => $safe_key
 					)
 				);
@@ -961,6 +969,8 @@ EOT;
 							'published' => $date,
 							'url' => get_the_permalink($post),
 							'attributedTo' => get_bloginfo('url').'/u/@'.$user,
+							'likes' => get_permalink($post_id).'likes',
+							'shares' => get_permalink($post_id).'shares',
 							'to' => array(
 								"https://www.w3.org/ns/activitystreams#Public"
 							),
@@ -1026,6 +1036,71 @@ EOT;
 		}
 		die(1);
 	}
+	
+	function get_likes() {
+		header('Content-type: application/activity+json');
+		$req = $_SERVER['REQUEST_URI'];
+		preg_match('/([a-zA-Z0-9\/\:\.]+)likes$/', $req, $id_match);
+		$id = 'http'.($_SERVER['HTTPS'] ? 's' : '').'://'.$_SERVER['SERVER_NAME'].$req;
+		
+		$likes = get_posts(array(
+			'post_type' => 'like',
+			'posts_per_page' => -1,
+			'meta_query' => array(
+				array(
+					'key' => 'object',
+					'value' => 'https?:\/\/'.$_SERVER['SERVER_NAME'].$id_match[1],
+					'compare' => 'REGEXP'
+				)
+			)
+		));
+		
+		$output = array(
+			'@context' => "https://www.w3.org/ns/activitystreams",
+			'id' => $id,
+			'totalItems' => count($likes),
+			'type' => 'OrderedCollection',
+			'orderedItems' => array()
+		);
+		
+		foreach ($likes as $like) {
+			array_push($output['orderedItems'], json_decode($like->post_content));
+		}
+		echo json_encode($output);
+		die(1);
+	}
+	
+	function get_shares() {
+		header('Content-type: application/activity+json');
+		$req = $_SERVER['REQUEST_URI'];
+		preg_match('/([a-zA-Z0-9\/\:\.]+)shares$/', $req, $id_match);
+		$id = 'http'.($_SERVER['HTTPS'] ? 's' : '').'://'.$_SERVER['SERVER_NAME'].$req;
+		
+		$shares = get_posts(array(
+			'post_type' => 'share',
+			'posts_per_page' => -1,
+			'meta_query' => array(
+				array(
+					'key' => 'object',
+					'value' => 'https?:\/\/'.$_SERVER['SERVER_NAME'].$id_match[1]
+				)
+			)
+		));
+		
+		$output = array(
+			'@context' => "https://www.w3.org/ns/activitystreams",
+			'id' => $id,
+			'type' => 'OrderedCollection',
+			'totalItems' => count($shares),
+			'orderedItems' => array()
+		);
+		
+		foreach ($shares as $share) {
+			array_push($output['orderedItems'], json_decode($share->post_content));
+		}
+		echo json_encode($output);
+		die(1);
+	}
 
 	function rest_api_stuff() {
 		// set up some API routes to return webfinger + actor data
@@ -1052,6 +1127,16 @@ EOT;
 		register_rest_route('ap/v1', '/followers', array(
 			'methods' => WP_REST_Server::READABLE,
 			'callback' => 'get_followers'
+		));
+		
+		register_rest_route('ap/v1', '/likes', array(
+			'methods' => WP_REST_Server::READABLE,
+			'callback' => 'get_likes'
+		));
+		
+		register_rest_route('ap/v1', '/shares', array(
+			'methods' => WP_REST_Server::READABLE,
+			'callback' => 'get_shares'
 		));
 	}
 	add_action('rest_api_init', 'rest_api_stuff');
@@ -1348,6 +1433,8 @@ EOT;
 					'published' => $date,
 					'attributedTo' => get_bloginfo('url').'/u/@'.$user->user_login,
 					'content' => apply_filters('the_content',get_the_content()),
+					'likes' => get_permalink($post_id).'likes',
+					'shares' => get_permalink($post_id).'shares',
 					'to' => array(
 						'https://www.w3.org/ns/activitystreams#Public'
 					),
