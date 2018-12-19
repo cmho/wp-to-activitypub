@@ -24,6 +24,12 @@
 			'public' => true,
 			'supports' => array('title', 'editor', 'page-attributes')
 		));
+		
+		register_post_type('announce', array(
+			'label' => 'Announce',
+			'public' => false,
+			'supports' => array('title', 'editor')
+		));
 
 		register_post_type('like', array(
 			'label' => 'Like',
