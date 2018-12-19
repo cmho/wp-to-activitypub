@@ -69,7 +69,7 @@
 						'mediaType' => 'image/jpeg',
 						'url' => get_site_icon_url()
 					),
-					'summary' => get_bloginfo('description'),
+					'summary' => $tag->description,
 					'publicKey' => array(
 						'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').$tagmatches[1].'#main-key',
 						'owner' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').$tagmatches[1],
@@ -102,7 +102,7 @@
 						'mediaType' => 'image/jpeg',
 						'url' => get_site_icon_url()
 					),
-					'summary' => get_bloginfo('description'),
+					'summary' => $cat->description,
 					'publicKey' => array(
 						'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').$catmatches[1].'#main-key',
 						'owner' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').$catmatches[1],

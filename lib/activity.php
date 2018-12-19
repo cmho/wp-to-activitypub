@@ -199,17 +199,51 @@ EOT;
 					$announce['id'] = get_permalink($a);
 					
 					// set Actor
-					$announce['actor'] => get_option('wp_activitypub_tags_prefix').$tag->slug;
+					$announce['actor'] = get_option('wp_activitypub_tags_prefix').$tag->slug;
 					
 					// set publication date
 					
 					$a_date = new DateTime(get_the_date('c', $a));
 					$a_date->setTimezone(new \DateTimeZone('GMT'));
 					$date = $a_date->format('D, d M Y H:i:s T');
-					$announce['published'] => $date;
+					$announce['published'] = $date;
 					
 					// CC followers of this account
 					array_push($announce['cc'], get_bloginfo('url').'/u/@'.get_option('wp_activitypub_tags_prefix').$tag->slug.'/followers');
+					
+					foreach ($subscribers as $subscriber) {
+						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
+						$key = trim(get_term_meta($tag->ID, 'privkey', true));
+						$keyval = <<< EOT
+$key
+EOT;
+						$pkey = openssl_get_privatekey($keyval);
+						openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
+						$sig_encode = base64_encode($signature);
+						$sig_str = "keyId=\"".get_bloginfo('url')."/u/@".get_option('wp_activitypub_tags_prefix').$tag->slug."#main-key\",headers=\"(request-target) host date\",signature=\"" .$sig_encode. "\"";
+						$domain = get_user_meta($subscriber->ID, 'domain', true);
+						$ch = curl_init();
+						curl_setopt_array($ch, array(
+							CURLOPT_URL => get_user_meta($subscriber->ID, 'inbox', true),
+							CURLOPT_RETURNTRANSFER => true,
+							CURLOPT_POST => 1,
+							CURLOPT_POSTFIELDS => json_encode($message),
+							CURLOPT_HTTPHEADER => array(
+								'Signature: '.$sig_str,
+						    'Date: '.$date,
+						    'Host: '.$domain,
+								'Content-Type: application/activity+json',
+							)
+						));
+					
+						wp_insert_post(array(
+							'post_content' => json_encode($message)."\n\n".$sig_str."\n\n".$domain,
+							'post_status' => 'publish',
+							'post_type' => 'outboxitem'
+						));
+						$result = curl_exec($ch);
+						curl_close($ch);
+					}
 				}
 			}
 			
@@ -226,22 +260,55 @@ EOT;
 					$announce['id'] = get_permalink($a);
 					
 					// set Actor
-					$announce['actor'] => get_option('wp_activitypub_cats_prefix').$cat->slug;
+					$announce['actor'] = get_option('wp_activitypub_cats_prefix').$cat->slug;
 					
 					// set publication date
 					
 					$a_date = new DateTime(get_the_date('c', $a));
 					$a_date->setTimezone(new \DateTimeZone('GMT'));
 					$date = $a_date->format('D, d M Y H:i:s T');
-					$announce['published'] => $date;
+					$announce['published'] = $date;
 					
 					// CC followers of this account
 					array_push($announce['cc'], get_bloginfo('url').'/u/@'.get_option('wp_activitypub_cats_prefix').$cat->slug.'/followers');
+					
+					foreach ($subscribers as $subscriber) {
+						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
+						$key = trim(get_term_meta($cat->ID, 'privkey', true));
+						$keyval = <<< EOT
+$key
+EOT;
+						$pkey = openssl_get_privatekey($keyval);
+						openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
+						$sig_encode = base64_encode($signature);
+						$sig_str = "keyId=\"".get_bloginfo('url')."/u/@".get_option('wp_activitypub_cats_prefix').$cat->slug."#main-key\",headers=\"(request-target) host date\",signature=\"" .$sig_encode. "\"";
+						$domain = get_user_meta($subscriber->ID, 'domain', true);
+						$ch = curl_init();
+						curl_setopt_array($ch, array(
+							CURLOPT_URL => get_user_meta($subscriber->ID, 'inbox', true),
+							CURLOPT_RETURNTRANSFER => true,
+							CURLOPT_POST => 1,
+							CURLOPT_POSTFIELDS => json_encode($message),
+							CURLOPT_HTTPHEADER => array(
+								'Signature: '.$sig_str,
+						    'Date: '.$date,
+						    'Host: '.$domain,
+								'Content-Type: application/activity+json',
+							)
+						));
+					
+						wp_insert_post(array(
+							'post_content' => json_encode($message)."\n\n".$sig_str."\n\n".$domain,
+							'post_status' => 'publish',
+							'post_type' => 'outboxitem'
+						));
+						$result = curl_exec($ch);
+						curl_close($ch);
+					}
 				}
 			}
 			
 			// send to people who follow the 'all' actor with the all key
-			
 			
 			wp_reset_postdata();
 		}

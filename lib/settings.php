@@ -1,6 +1,5 @@
 <?php
-
-function wp_activitypub_options_html($args) {
+	function wp_activitypub_options_html($args) {
 		$options = get_option('wp_activitypub_settings');
 		if (!current_user_can('manage_options')) {
         return;
@@ -214,6 +213,7 @@ function wp_activitypub_options_html($args) {
 	add_action('create_term', 'add_term_keys');
 	
 	function add_global_pkeys() {
+		global $wp_rewrite;
 		$wp_rewrite->flush_rules();
 		if (get_option('wp_activitypub_global') && get_option('wp_activitypub_global_pubkey') == '') {
 			$privKey;
@@ -231,6 +231,7 @@ function wp_activitypub_options_html($args) {
 	add_action('update_option_wp_activitypub_global', 'add_global_pkeys');
 	
 	function add_tag_pkeys() {
+		global $wp_rewrite;
 		$wp_rewrite->flush_rules();
 		if (get_option('wp_activitypub_tags')) {
 			$tags = get_terms(array(
@@ -256,6 +257,7 @@ function wp_activitypub_options_html($args) {
 	add_action('update_option_wp_activitypub_tags', 'add_tag_pkeys');
 	
 	function add_cat_pkeys() {
+		global $wp_rewrite;
 		$wp_rewrite->flush_rules();
 		if (get_option('wp_activitypub_cats')) {
 			$cats = get_terms(array(
