@@ -195,11 +195,15 @@ EOT;
 						'post_status' => 'publish'
 					));
 					
+					$announce['cc'] = array(
+            get_bloginfo('url').'/u/@'.$user->user_login
+					);
+					
 					// set ID
 					$announce['id'] = get_permalink($a);
 					
 					// set Actor
-					$announce['actor'] = get_option('wp_activitypub_tags_prefix').$tag->slug;
+					$announce['actor'] = get_bloginfo('url').'/u/@'.get_option('wp_activitypub_tags_prefix').$tag->slug;
 					
 					// set publication date
 					
@@ -211,13 +215,14 @@ EOT;
 					// CC followers of this account
 					array_push($announce['cc'], get_bloginfo('url').'/u/@'.get_option('wp_activitypub_tags_prefix').$tag->slug.'/followers');
 					
-					foreach ($subscribers as $subscriber) {
-						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
-						$key = trim(get_term_meta($tag->ID, 'privkey', true));
-						$keyval = <<< EOT
+					$key = trim(get_term_meta($tag->ID, 'privkey', true));
+					$keyval = <<< EOT
 $key
 EOT;
-						$pkey = openssl_get_privatekey($keyval);
+					$pkey = openssl_get_privatekey($keyval);
+					
+					foreach ($subscribers as $subscriber) {
+						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
 						openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
 						$sig_encode = base64_encode($signature);
 						$sig_str = "keyId=\"".get_bloginfo('url')."/u/@".get_option('wp_activitypub_tags_prefix').$tag->slug."#main-key\",headers=\"(request-target) host date\",signature=\"" .$sig_encode. "\"";
@@ -227,7 +232,7 @@ EOT;
 							CURLOPT_URL => get_user_meta($subscriber->ID, 'inbox', true),
 							CURLOPT_RETURNTRANSFER => true,
 							CURLOPT_POST => 1,
-							CURLOPT_POSTFIELDS => json_encode($message),
+							CURLOPT_POSTFIELDS => json_encode($announce),
 							CURLOPT_HTTPHEADER => array(
 								'Signature: '.$sig_str,
 						    'Date: '.$date,
@@ -237,7 +242,7 @@ EOT;
 						));
 					
 						wp_insert_post(array(
-							'post_content' => json_encode($message)."\n\n".$sig_str."\n\n".$domain,
+							'post_content' => json_encode($announce)."\n\n".$sig_str."\n\n".$domain,
 							'post_status' => 'publish',
 							'post_type' => 'outboxitem'
 						));
@@ -256,11 +261,15 @@ EOT;
 						'post_status' => 'publish'
 					));
 					
+					$announce['cc'] = array(
+            get_bloginfo('url').'/u/@'.$user->user_login
+					);
+					
 					// set ID
 					$announce['id'] = get_permalink($a);
 					
 					// set Actor
-					$announce['actor'] = get_option('wp_activitypub_cats_prefix').$cat->slug;
+					$announce['actor'] = get_bloginfo('url').'/u/@'.get_option('wp_activitypub_cats_prefix').$cat->slug;
 					
 					// set publication date
 					
@@ -272,13 +281,14 @@ EOT;
 					// CC followers of this account
 					array_push($announce['cc'], get_bloginfo('url').'/u/@'.get_option('wp_activitypub_cats_prefix').$cat->slug.'/followers');
 					
-					foreach ($subscribers as $subscriber) {
-						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
-						$key = trim(get_term_meta($cat->ID, 'privkey', true));
-						$keyval = <<< EOT
+					$key = trim(get_term_meta($cat->ID, 'privkey', true));
+					$keyval = <<< EOT
 $key
 EOT;
-						$pkey = openssl_get_privatekey($keyval);
+					$pkey = openssl_get_privatekey($keyval);
+					
+					foreach ($subscribers as $subscriber) {
+						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
 						openssl_sign($str, $signature, $pkey, OPENSSL_ALGO_SHA256);
 						$sig_encode = base64_encode($signature);
 						$sig_str = "keyId=\"".get_bloginfo('url')."/u/@".get_option('wp_activitypub_cats_prefix').$cat->slug."#main-key\",headers=\"(request-target) host date\",signature=\"" .$sig_encode. "\"";
@@ -288,7 +298,7 @@ EOT;
 							CURLOPT_URL => get_user_meta($subscriber->ID, 'inbox', true),
 							CURLOPT_RETURNTRANSFER => true,
 							CURLOPT_POST => 1,
-							CURLOPT_POSTFIELDS => json_encode($message),
+							CURLOPT_POSTFIELDS => json_encode($announce),
 							CURLOPT_HTTPHEADER => array(
 								'Signature: '.$sig_str,
 						    'Date: '.$date,
@@ -298,7 +308,7 @@ EOT;
 						));
 					
 						wp_insert_post(array(
-							'post_content' => json_encode($message)."\n\n".$sig_str."\n\n".$domain,
+							'post_content' => json_encode($announce)."\n\n".$sig_str."\n\n".$domain,
 							'post_status' => 'publish',
 							'post_type' => 'outboxitem'
 						));
@@ -309,6 +319,15 @@ EOT;
 			}
 			
 			// send to people who follow the 'all' actor with the all key
+			$a = wp_insert_post(array(
+				'post_type' => 'announce',
+				'post_author' => $user->ID,
+				'post_status' => 'publish'
+			));
+			$a_date = new DateTime(get_the_date('c', $a));
+			$a_date->setTimezone(new \DateTimeZone('GMT'));
+			$date = $a_date->format('D, d M Y H:i:s T');
+			$announce['published'] = $date;
 			
 			wp_reset_postdata();
 		}

@@ -35,8 +35,6 @@
 					// check if there's an account by that name
 					$following = str_replace('https://'.parse_url($followobj)['host']."/u/@", "", $followobj);
 					header('Content-type: application/activity+json');
-					header("HTTP/1.1 200 OK");
-					
 					if ($type == 'Follow') {
 						// if it's a follow request, process it
 						// check if it comes from a blocked domain; if so, deny it
@@ -110,27 +108,29 @@ EOT;
 						$follow_user = get_user_by('slug', $following);
 						
 						// check if we've already created a local account for this user
-						$user_check = get_user_by('slug', $username);
+						$user_check = get_user_by('login', $username);
 						
 						if (!$user_check) {
 							// create new user account if it doesn't exist
-							$user_check = wp_create_user($username, serialize(bin2hex(random_bytes(16))));
+							$u = wp_create_user($username, serialize(bin2hex(random_bytes(16))));
+							$user_check = get_user_by('id', $u);
 							// initialize subscription list w/ requested account
-							add_user_meta($user_check, 'following', array($following));
-							add_user_meta($user_check, 'ap_id', $act->id);
+							add_user_meta($user_check->ID, 'following', array($following));
+							add_user_meta($user_check->ID, 'ap_id', $act->id);
 						} else {
 							// if the account alreaddy  exists, add the account to the subscription list
-							$follows = get_user_meta($user_check, 'following', true);
-							array_push(get_user_meta($follows, 'following'), $following)
-							update_user_meta($user_check, 'following', $follows);
+							$follows = get_user_meta($user_check->ID, 'following', false);
+							array_push($follows[0], $following);
+							$follows = array_unique($follows[0]);
+							update_user_meta($user_check->ID, 'following', $follows);
 						}
 						
 						// store inbox url, preferred username, domain, public key, actor for reference purposes
-						update_user_meta($user_check, 'inbox', $inbox);
-						update_user_meta($user_check, 'preferred_username', $act->preferredUsername);
-						update_user_meta($user_check, 'domain', $domain);
-						update_user_meta($user_check, 'pubkey', $act->publicKey->publicKeyPem);
-						update_user_meta($user_check, 'actor_info', json_encode($act));
+						update_user_meta($user_check->ID, 'inbox', $inbox);
+						update_user_meta($user_check->ID, 'preferred_username', $act->preferredUsername);
+						update_user_meta($user_check->ID, 'domain', $domain);
+						update_user_meta($user_check->ID, 'pubkey', $act->publicKey->publicKeyPem);
+						update_user_meta($user_check->ID, 'actor_info', json_encode($act));
 						
 						// create acceptance object
 						$p = wp_insert_post(array(
@@ -143,7 +143,21 @@ EOT;
 						$body = json_encode($entityBody);
 						$ch = curl_init();
 						$signature = "";
-						$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
+						preg_match('/'.get_option('wp_activitypub_tags_prefix').'([a-zA-Z0-9\-]+)$/', $following, $tagmatches);
+						preg_match('/'.get_option('wp_activitypub_cats_prefix').'([a-zA-Z0-9\-]+)$/', $following, $catmatches);
+						preg_match('/'.get_option('wp_activitypub_global_name').'$/', $following, $globalmatches);
+						$key;
+						if ($follow_user) {
+							echo "1";
+							$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
+						} elseif (count($tagmatches) > 0) {
+							$key = trim(get_term_meta(get_term_by('slug', $tagmatches[1], 'post_tag')->term_id, 'privkey', true));
+						} elseif (count($catmatches) > 0) {
+							$key = trim(get_term_meta(get_term_by('slug', $catmatches[1], 'category')->term_id, 'privkey', true));
+						} elseif (count($globalmatches) > 0) {
+							$key = get_option('wp_activitypub_global_privkey');
+						} else {
+						}
 						$keyval = <<< EOT
 $key
 EOT;
