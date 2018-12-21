@@ -12,11 +12,7 @@
 		
 		// get actor contents
 		$entityBody = json_decode(file_get_contents('php://input'));
-		wp_insert_post(array(
-			'post_content' => file_get_contents('php://input'),
-			'post_status' => 'publish',
-			'post_type' => 'inboxitem'
-		));
+
 		$type = $entityBody->type;
 		$a = $entityBody->actor;
 		if ($a) {
@@ -44,11 +40,6 @@
 							'post_name' => str_replace('.', '-', $domain)
 						));
 						if (count($bd) > 0) {
-							$p = wp_insert_post(array(
-								'post_type' => 'outboxitem',
-								'post_status' => 'publish',
-								'post_content' => 'pending'
-							));
 							$reject = array(
 								'@context' => 'https://www.w3.org/ns/activitystreams',
 								'id' => get_bloginfo('url').'/u/@'.$following,
@@ -96,11 +87,6 @@ EOT;
 							));
 							$result = curl_exec($ch);
 							curl_close($ch);
-							echo $reject;
-							wp_update_post(array(
-								'ID' => $p,
-								'post_content' => $reject
-							));
 							die(1);
 							return;
 						}
@@ -133,11 +119,6 @@ EOT;
 						update_user_meta($user_check->ID, 'actor_info', json_encode($act));
 						
 						// create acceptance object
-						$p = wp_insert_post(array(
-							'post_type' => 'outboxitem',
-							'post_content' => 'pending',
-							'post_status' => 'publish'
-						));
 						$permalink = get_the_permalink($p);
 						$baseurl = get_bloginfo('url');
 						$body = json_encode($entityBody);
@@ -199,12 +180,6 @@ EOT;
 						));
 						$result = curl_exec($ch);
 						curl_close($ch);
-						update_user_meta($u, 'follow_result', var_dump($result));
-						echo $accept;
-						wp_update_post(array(
-							'ID' => $p,
-							'post_content' => $json_accept."\n\n".$sig_str
-						));
 					} elseif ($type == 'Create') {
 						// handle replies here
 					} elseif ($type == 'Undo') {

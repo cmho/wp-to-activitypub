@@ -13,18 +13,6 @@
 			'supports' => array('title')
 		));
 		
-		register_post_type('inboxitem', array(
-			'label' => 'Inbox',
-			'public' => true,
-			'supports' => array('title', 'editor', 'page-attributes')
-		));
-		
-		register_post_type('outboxitem', array(
-			'label' => 'Outbox',
-			'public' => true,
-			'supports' => array('title', 'editor', 'page-attributes')
-		));
-		
 		register_post_type('announce', array(
 			'label' => 'Announce',
 			'public' => false,

@@ -85,12 +85,13 @@
 			'type' => 'string',
 			'default' => 'all'
 		));
+		/*
 		register_setting('wp_activitypub', 'wp_activitypub_global_pubkey', array(
 			'type' => 'string'
 		));
 		register_setting('wp_activitypub', 'wp_activitypub_global_privkey', array(
 			'type' => 'string'
-		));
+		));*/
 		add_settings_field(
 			'wp_activitypub_global',
 			__('Global User?', 'wp_activitypub'),
@@ -215,7 +216,7 @@
 	function add_global_pkeys() {
 		global $wp_rewrite;
 		$wp_rewrite->flush_rules();
-		if (get_option('wp_activitypub_global') && get_option('wp_activitypub_global_pubkey') == '') {
+		if (get_option('wp_activitypub_global') && empty(get_option('wp_activitypub_global_pubkey'))) {
 			$privKey;
 			$res = openssl_pkey_new(array(
 				'digest_alg' => 'sha256WithRsaEncryption',
@@ -224,6 +225,8 @@
 			));
 			openssl_pkey_export($res, $privKey);
 			$pubKey = openssl_pkey_get_details($res);
+			$pubKey['key'] = str_replace('\r', '\\n', $pubKey['key']);
+			$privKey = str_replace('\r', '\\n', $privKey);
 			update_option('wp_activitypub_global_pubkey', $pubKey['key']);
 			update_option('wp_activitypub_global_privkey', $privKey);
 		}
