@@ -344,6 +344,7 @@ EOT;
           
           $result = curl_exec($ch);
           curl_close($ch);
+        }
         
         wp_reset_postdata();
       }
