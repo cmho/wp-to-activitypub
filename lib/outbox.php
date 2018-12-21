@@ -20,9 +20,9 @@
 			}
 			if (count($matches) > 0 && $matches[1]) {
 				$user = $matches[1];
-				preg_match('/^tag_([a-zA-Z_\-0-9]+)/', $user, $tagmatch);
-				preg_match('/^cat_([a-zA-Z_\-0-9]+)/', $user, $catmatch);
-				preg_match('/^all/', $user, $allmatch);
+				preg_match('/^'.get_option('wp_activitypub_tags_prefix').'([a-zA-Z_\-0-9]+)/', $user, $tagmatch);
+				preg_match('/^'.get_option('wp_activitypub_cats_prefix').'([a-zA-Z_\-0-9]+)/', $user, $catmatch);
+				preg_match('/^'.get_option('wp_activitypub_global_name').'/', $user, $allmatch);
 				if (count($tagmatch) > 0) {
 					$params['tax_query'] = array(
 						array(

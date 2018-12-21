@@ -14,32 +14,33 @@
 				$acct = $matches2[1];
 			}
 			// check if this is tag user, cat user, or a global user
-			preg_match('/'.(get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').'([a-zA-Z0-9\-]+)$/', $acct, $tagmatches);
-			preg_match('/'.(get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').'([a-zA-Z0-9\-]+)$/', $acct, $catmatches);
-			preg_match('/'.(get_option('wp_activitypub_global_name') ? get_option('wp_activitypub_global_name') : 'all').'$/', $acct, $globalmatches);
+			preg_match('/'.get_option('wp_activitypub_tags_prefix', 'tag_').'([a-zA-Z0-9\-]+)$/', $acct, $tagmatches);
+			preg_match('/'.get_option('wp_activitypub_cats_prefix', 'cat_').'([a-zA-Z0-9\-]+)$/', $acct, $catmatches);
+			preg_match('/'.get_option('wp_activitypub_global_name', 'all').'$/', $acct, $globalmatches);
 			if (get_option('wp_activitypub_global') && count($globalmatches) > 0) {
 				$safe_key = trim(get_option('wp_activitypub_global_pubkey'));
+				$icon_meta = wp_get_attachment_metadata(get_option('site_icon'));
 				$ret = array(
 					'@context' => [
 						'https://www.w3.org/ns/activitystreams',
 						'https://w3id.org/security/v1'
 					],
-					'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_global_name') ? get_option('wp_activitypub_global_name') : 'all'),
+					'id' => get_bloginfo('url').'/u/@'.get_option('wp_activitypub_global_name', 'all'),
 					'name' => get_bloginfo('name'),
 					'type' => 'Person',
-					'preferredUsername' => (get_option('wp_activitypub_global_name') ? get_option('wp_activitypub_global_name') : 'all'),
+					'preferredUsername' => get_option('wp_activitypub_global_name', 'all'),
 					'inbox' => get_bloginfo('url').'/inbox',
-					'outbox' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_global_name') ? get_option('wp_activitypub_global_name') : 'all').'/outbox',
+					'outbox' => get_bloginfo('url').'/u/@'.get_option('wp_activitypub_global_name', 'all').'/outbox',
 					'manuallyApprovesFollowers' => false,
 					'icon' => array(
 						'type' => 'Image',
-						'mediaType' => 'image/jpeg',
+						'mediaType' => $icon_meta['sizes']['site_icon-180']['mime-type'],
 						'url' => get_site_icon_url()
 					),
 					'summary' => get_bloginfo('description'),
 					'publicKey' => array(
-						'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_global_name') ? get_option('wp_activitypub_global_name') : 'all').'#main-key',
-						'owner' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_global_name') ? get_option('wp_activitypub_global_name') : 'all'),
+						'id' => get_bloginfo('url').'/u/@'.get_option('wp_activitypub_global_name', 'all').'#main-key',
+						'owner' => get_bloginfo('url').'/u/@'.get_option('wp_activitypub_global_name', 'all'),
 						'publicKeyPem' => $safe_key
 					)
 				);
@@ -49,6 +50,7 @@
 				$tag = get_term_by('slug', $tagmatches[1], 'post_tag');
 				//$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($tag->term_id, 'pubkey', true)));
 				$safe_key = trim(get_term_meta($tag->term_id, 'pubkey', true));
+				$icon_meta = wp_get_attachment_metadata(get_option('site_icon'));
 				$ret = array(
 					'@context' => [
 						'https://www.w3.org/ns/activitystreams',
@@ -57,31 +59,33 @@
 							"manuallyApprovesFollowers" => "as:manuallyApprovesFollowers",
 						)
 					],
-					'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').$tagmatches[1],
+					'id' => get_bloginfo('url').'/u/@'.get_option('wp_activitypub_tags_prefix', 
+					'tag_').$tagmatches[1],
 					'type' => 'Person',
 					'name' => get_bloginfo('name').": ".$tag->name,
-					'preferredUsername' => (get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').$tagmatches[1],
+					'preferredUsername' => get_option('wp_activitypub_tags_prefix', 'tag_').$tagmatches[1],
 					'inbox' => get_bloginfo('url').'/inbox',
-					'outbox' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').$tagmatches[1].'/outbox',
+					'outbox' => get_bloginfo('url').'/u/@'.get_option('wp_activitypub_tags_prefix', 'tag_').$tagmatches[1].'/outbox',
 					'manuallyApprovesFollowers' => false,
 					'icon' => array(
 						'type' => 'Image',
-						'mediaType' => 'image/jpeg',
+						'mediaType' => $icon_meta['sizes']['site_icon-180']['mime-type'],
 						'url' => get_site_icon_url()
 					),
-					'summary' => get_bloginfo('description'),
+					'summary' => $tag->description,
 					'publicKey' => array(
-						'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').$tagmatches[1].'#main-key',
-						'owner' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_tags_prefix') ? get_option('wp_activitypub_tags_prefix') : 'tag_').$tagmatches[1],
+						'id' => get_bloginfo('url').'/u/@'.get_option('wp_activitypub_tags_prefix', 'tag_').$tagmatches[1].'#main-key',
+						'owner' => get_bloginfo('url').'/u/@'.get_option('wp_activitypub_tags_prefix', 'tag_').$tagmatches[1],
 						'publicKeyPem' => $safe_key
 					)
 				);
 				echo json_encode($ret);
 				die(1);
-			} elseif (get_option('wp_activitypub_cats_prefix') && count($catmatches) > 0) {
+			} elseif (get_option('wp_activitypub_cats') && count($catmatches) > 0) {
 				$cat = get_term_by('slug', $catmatches[1], 'category');
 				//$safe_key = preg_replace('/\n/', '\n', trim(get_term_meta($cat->term_id, 'pubkey', true)));
 				$safe_key = trim(get_term_meta($cat->term_id, 'pubkey', true));
+				$icon_meta = wp_get_attachment_metadata(get_option('site_icon'));
 				$ret = array(
 					'@context' => [
 						'https://www.w3.org/ns/activitystreams',
@@ -90,22 +94,22 @@
 							"manuallyApprovesFollowers" => "as:manuallyApprovesFollowers",
 						)
 					],
-					'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').$catmatches[1],
+					'id' => get_bloginfo('url').'/u/@'.get_option('wp_activitypub_cats_prefix', 'cat_').$catmatches[1],
 					'type' => 'Person',
 					'name' => get_bloginfo('name').": ".$cat->name,
-					'preferredUsername' => (get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').$catmatches[1],
+					'preferredUsername' => get_option('wp_activitypub_cats_prefix', 'cat_').$catmatches[1],
 					'inbox' => get_bloginfo('url').'/inbox',
-					'outbox' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').$catmatches[1].'/outbox',
+					'outbox' => get_bloginfo('url').'/u/@'.get_option('wp_activitypub_cats_prefix', 'cat_').$catmatches[1].'/outbox',
 					'manuallyApprovesFollowers' => false,
 					'icon' => array(
 						'type' => 'Image',
-						'mediaType' => 'image/jpeg',
+						'mediaType' => $icon_meta['sizes']['site_icon-180']['mime-type'],
 						'url' => get_site_icon_url()
 					),
-					'summary' => get_bloginfo('description'),
+					'summary' => $cat->description,
 					'publicKey' => array(
-						'id' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').$catmatches[1].'#main-key',
-						'owner' => get_bloginfo('url').'/u/@'.(get_option('wp_activitypub_cats_prefix') ? get_option('wp_activitypub_cats_prefix') : 'cat_').$catmatches[1],
+						'id' => get_bloginfo('url').'/u/@'.get_option('wp_activitypub_cats_prefix', 'cat_').$catmatches[1].'#main-key',
+						'owner' => get_bloginfo('url').'/u/@'.get_option('wp_activitypub_cats_prefix', 'cat_').$catmatches[1],
 						'publicKeyPem' => $safe_key
 					)
 				);

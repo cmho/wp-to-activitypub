@@ -1,6 +1,5 @@
 <?php
-
-function wp_activitypub_options_html($args) {
+	function wp_activitypub_options_html($args) {
 		$options = get_option('wp_activitypub_settings');
 		if (!current_user_can('manage_options')) {
         return;
@@ -86,12 +85,13 @@ function wp_activitypub_options_html($args) {
 			'type' => 'string',
 			'default' => 'all'
 		));
+		/*
 		register_setting('wp_activitypub', 'wp_activitypub_global_pubkey', array(
 			'type' => 'string'
 		));
 		register_setting('wp_activitypub', 'wp_activitypub_global_privkey', array(
 			'type' => 'string'
-		));
+		));*/
 		add_settings_field(
 			'wp_activitypub_global',
 			__('Global User?', 'wp_activitypub'),
@@ -214,8 +214,9 @@ function wp_activitypub_options_html($args) {
 	add_action('create_term', 'add_term_keys');
 	
 	function add_global_pkeys() {
+		global $wp_rewrite;
 		$wp_rewrite->flush_rules();
-		if (get_option('wp_activitypub_global') && get_option('wp_activitypub_global_pubkey') == '') {
+		if (get_option('wp_activitypub_global') && empty(get_option('wp_activitypub_global_pubkey'))) {
 			$privKey;
 			$res = openssl_pkey_new(array(
 				'digest_alg' => 'sha256WithRsaEncryption',
@@ -224,6 +225,8 @@ function wp_activitypub_options_html($args) {
 			));
 			openssl_pkey_export($res, $privKey);
 			$pubKey = openssl_pkey_get_details($res);
+			$pubKey['key'] = str_replace('\r', '\\n', $pubKey['key']);
+			$privKey = str_replace('\r', '\\n', $privKey);
 			update_option('wp_activitypub_global_pubkey', $pubKey['key']);
 			update_option('wp_activitypub_global_privkey', $privKey);
 		}
@@ -231,6 +234,7 @@ function wp_activitypub_options_html($args) {
 	add_action('update_option_wp_activitypub_global', 'add_global_pkeys');
 	
 	function add_tag_pkeys() {
+		global $wp_rewrite;
 		$wp_rewrite->flush_rules();
 		if (get_option('wp_activitypub_tags')) {
 			$tags = get_terms(array(
@@ -256,6 +260,7 @@ function wp_activitypub_options_html($args) {
 	add_action('update_option_wp_activitypub_tags', 'add_tag_pkeys');
 	
 	function add_cat_pkeys() {
+		global $wp_rewrite;
 		$wp_rewrite->flush_rules();
 		if (get_option('wp_activitypub_cats')) {
 			$cats = get_terms(array(
