@@ -352,4 +352,4 @@ EOT;
 		
 		return;
 	}
-	add_action('transition_post_status', 'send_messages');
+	add_action('transition_post_status', 'send_messages', 10, 3);
