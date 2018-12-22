@@ -39,7 +39,7 @@
 
 		wp_insert_post(array(
 			'post_type' => 'inboxitem',
-			'post_content' => json_encode($entityBody)."\n\n".$data."\n\n".$h['Signature']
+			'post_content' => json_encode($entityBody)."\n\n".$data."\n\n".$h['Signature']."\n\n".var_dump($headerpairs)
 		));
 
 		// grab the actor data from the webfinger sent to us
