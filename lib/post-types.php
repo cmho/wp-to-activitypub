@@ -31,6 +31,12 @@
 			'supports' => array('title', 'editor')
 		));
 		
+		register_post_type('follow', array(
+			'label' => 'Follow',
+			'public' => false,
+			'supports' => array()
+		));
+		
 	}
   add_action('init', 'post_types_init');
   

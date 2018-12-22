@@ -58,6 +58,23 @@
         // get the author info
         $user = get_user_by('ID', $post->post_author);
         
+        $subs = array_filter(get_posts(array(
+	        'post_type' => 'follow',
+	        'posts_per_page' => -1,
+	        'meta_query' => array(
+		        array(
+			        'key' => 'following',
+			        'value' => $user->user_login
+		        )
+	        )
+        )), function($x) {
+	        $u = get_user_by('id', $x->post_author);
+	        if (!get_user_meta($u->ID, 'suspended', true) && !in_array($domain_blocks, get_user_meta($u->ID, 'domain', true))) {
+		        return true;
+	        }
+	        return false;
+	      });
+        
         // replace newlines with \n because json doesn't like them
         $filtered_content = preg_replace('/\n/', '\n', get_the_content($post_id));
         
