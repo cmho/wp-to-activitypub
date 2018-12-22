@@ -192,6 +192,7 @@
 				$user_query['number'] = 10;
 				$user_query['paged'] = intval($query['page']);
 			}
+			
 			$users = array_map(function($x) {
 				return get_user($x->post_author);
 			}, get_posts($user_query));
