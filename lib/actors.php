@@ -178,28 +178,24 @@
 		if (count($matches) > 0) {
 			// get the user by slug
 			$user_query = array(
-				'role__in' => array('subscriber'),
+				'post_type' => 'follow',
+				'posts_per_page' => -1,
 				'meta_query' => array(
 					array(
-						'key' => 'domain',
-						'compare' => 'EXISTS'
+						'key' => 'following',
+						'value' => $matches[1]
 					)
 				)
 			);
+			
 			if (array_key_exists('page', $query)) {
 				$user_query['number'] = 10;
 				$user_query['paged'] = intval($query['page']);
 			}
-			$user = get_user_by('slug', $matches[1]);
-			$users = get_users($user_query);
-			$users = array_filter($users, function($x) {
-				global $user;
-				if (is_array(get_user_meta($x->ID, 'following', true))) {
-					return in_array($user->user_login, get_user_meta($x->ID, 'following', true));
-				} else {
-					return $user->user_login == get_user_meta($x->ID, 'following', true);
-				}
-			});
+			$users = array_map(function($x) {
+				return get_user($x->post_author);
+			}, get_posts($user_query));
+			
 			$content = array(
 				'@context' => 'https://www.w3.org/ns/activitystreams',
 				'type' => 'OrderedCollection',
