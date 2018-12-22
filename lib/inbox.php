@@ -14,9 +14,19 @@
 		$type = $entityBody->type;
 		$a = $entityBody->actor;
 
+		$zip = array_map(function($x) {
+			return explode("=", $x);
+		}, $sig);
+
+		$headerpairs = array_combine(array_map(function($y) {
+			return $y[0];
+		}, $zip), array_map(function($z) {
+			return $z[1];
+		}, $zip));
+
 		// create signature comparison string
 		$data = "";
-		foreach($headers as $i=>$header) {
+		foreach($headerpairs['headers'] as $i=>$header) {
 			if ($header == "(request-target)") {
 				$data .= "(request-target): post /inbox\n";
 			} else {
