@@ -37,7 +37,7 @@
 			}
 		}
 
-		wp_insert_post(array(
+		$p = wp_insert_post(array(
 			'post_type' => 'inboxitem',
 			'post_content' => json_encode($entityBody)."\n\n".json_encode($headerpairs['headers'])
 		));
@@ -50,6 +50,10 @@
 			header('HTTP/1.1 401 Unauthorized');
 			die(1);
 		}
+
+		wp_update_post(array(
+			'post_content' => json_encode($entityBody)."\n\n".json_encode($headerpairs['headers'])."\n\n"."passed verification"
+		))
 
 		// signature good! let's go!!!
 		if ($a) {
