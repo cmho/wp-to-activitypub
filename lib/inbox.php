@@ -53,7 +53,7 @@
 
 		wp_update_post(array(
 			'post_content' => json_encode($entityBody)."\n\n".json_encode($headerpairs['headers'])."\n\n"."passed verification"
-		))
+		));
 
 		// signature good! let's go!!!
 		if ($a) {
