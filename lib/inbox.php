@@ -26,7 +26,7 @@
 
 		// create signature comparison string
 		$data = "";
-		foreach($headerpairs['headers'] as $i=>$header) {
+		foreach(explode(" ", $headerpairs['headers']) as $i=>$header) {
 			if ($header == "(request-target)") {
 				$data .= "(request-target): post /inbox\n";
 			} else {
