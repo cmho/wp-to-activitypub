@@ -103,7 +103,7 @@ EOT;
 							// initialize subscription list w/ requested account
 							$f = wp_insert_post(array(
 								'post_type' => 'follow',
-								'post_author' => $u->ID,
+								'post_author' => $u,
 								'meta_input' => array(
 									'following' => $follow_user->user_login
 								)
@@ -113,7 +113,7 @@ EOT;
 							// if the account already exists, add the account to the subscription list
 							$f = wp_insert_post(array(
 								'post_type' => 'follow',
-								'post_author' => $u->ID,
+								'post_author' => $user_check->ID,
 								'meta_input' => array(
 									'following' => $follow_user->user_login
 								)
