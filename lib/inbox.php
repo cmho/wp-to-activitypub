@@ -104,8 +104,9 @@ EOT;
 							$f = wp_insert_post(array(
 								'post_type' => 'follow',
 								'post_author' => $u,
+								'post_status' => 'publish',
 								'meta_input' => array(
-									'following' => $follow_user->user_login
+									'following' => $following
 								)
 							));
 							add_user_meta($user_check->ID, 'ap_id', $act->id);
@@ -114,8 +115,9 @@ EOT;
 							$f = wp_insert_post(array(
 								'post_type' => 'follow',
 								'post_author' => $user_check->ID,
+								'post_status' => 'publish',
 								'meta_input' => array(
-									'following' => $follow_user->user_login
+									'following' => $following
 								)
 							));
 						}
