@@ -36,6 +36,12 @@
 			'public' => false,
 			'supports' => array()
 		));
+
+		register_post_type('inboxitem', array(
+			'label' => 'Inbox',
+			'public' => true,
+			'supports' => array('editor')
+		));
 		
 	}
   add_action('init', 'post_types_init');
