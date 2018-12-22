@@ -101,14 +101,23 @@ EOT;
 							$u = wp_create_user($username, serialize(bin2hex(random_bytes(16))));
 							$user_check = get_user_by('id', $u);
 							// initialize subscription list w/ requested account
-							add_user_meta($user_check->ID, 'following', array($following));
+							$f = wp_insert_post(array(
+								'post_type' => 'follow',
+								'post_author' => $u->ID,
+								'meta_input' => array(
+									'following' => $follow_user->user_login
+								)
+							));
 							add_user_meta($user_check->ID, 'ap_id', $act->id);
 						} else {
-							// if the account alreaddy  exists, add the account to the subscription list
-							$follows = get_user_meta($user_check->ID, 'following', false);
-							array_push($follows[0], $following);
-							$follows = array_unique($follows[0]);
-							update_user_meta($user_check->ID, 'following', $follows);
+							// if the account already exists, add the account to the subscription list
+							$f = wp_insert_post(array(
+								'post_type' => 'follow',
+								'post_author' => $u->ID,
+								'meta_input' => array(
+									'following' => $follow_user->user_login
+								)
+							));
 						}
 						
 						// store inbox url, preferred username, domain, public key, actor for reference purposes

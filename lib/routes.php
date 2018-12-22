@@ -23,6 +23,6 @@
 		add_rewrite_rule('^u/@'.$cats_prefix.'([a-zA-Z0-9\-_]+)/outbox$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]', 'top');
 		add_rewrite_rule('^u/@'.$tags_prefix.'([a-zA-Z0-9\-_]+)/outbox\??([a-zA-Z0-9_\&\=]+)?$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]&matches[2]', 'top');
 		add_rewrite_rule('^u/@'.$cats_prefix.'([a-zA-Z0-9\-_]+)/outbox\??([a-zA-Z0-9_\&\=]+)?$', 'index.php?rest_route=/ap/v1/outbox&acct=$matches[1]&matches[2]', 'top');
-		add_rewrite_rule('^u/@([a-zA-Z0-9\-]+)/followers$', 'index.php?rest_route=/ap/v1/followers&acct=$matches[1]', 'top');
+		add_rewrite_rule('^u/@([a-zA-Z0-9\-\_]+)/followers$', 'index.php?rest_route=/ap/v1/followers&acct=$matches[1]', 'top');
 	}
 	add_action('init', 'rewrite_init');
