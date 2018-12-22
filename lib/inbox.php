@@ -182,14 +182,67 @@ EOT;
 						curl_close($ch);
 					} elseif ($type == 'Create') {
 						// handle replies here
+						// check if it has an inReplyTo
+						// if so, find that post... somehow
+						// if the sender doesn't have a remote account here, create it
+						// create comment
 					} elseif ($type == 'Undo') {
-						// if it's an unfollow request, process it
-						$user = get_user_by('slug', $username."@".$domain);
-						wp_delete_user($user->ID);
-						// delete user from database
+						$user = get_user_by('login', $username."@".$domain);
+						if ($entityBody->object->type == 'Follow') {
+							// if it's an unfollow request, process it
+							preg_match('/\/u\/@([a-zA-Z0-9_]+)/', $entityBody->object->actor, $output_array);
+							$followuser = $output_array[1];
+							$follow = get_posts(array(
+								'post_author' => $user->ID,
+								'meta_query' => array(
+									array(
+										'key' => 'following',
+										'value' => $followuser
+									)
+								)
+							));
+							foreach($follow as $f) {
+								// delete follow records from database
+								wp_delete_post($f->ID);
+							}
+						} elseif ($entityBody->object->type == 'Like') {
+							$like = get_posts(array(
+								'post_author' => $user->ID,
+								'post_type' => 'like',
+								'posts_per_page' => -1,
+								'meta_query' => array(
+									array(
+										'key' => 'activity_id',
+										'value' => $entityBody->object->id
+									)
+								)
+							));
+							foreach ($like as $l) {
+								// delete like records from database
+								wp_delete_post($l->ID);
+							}
+						} elseif ($entityBody->object->type == 'Announce') {
+							$share = get_posts(array(
+								'post_author' => $user->ID,
+								'post_type' => 'share',
+								'posts_per_page' => -1,
+								'meta_query' => array(
+									array(
+										'key' => 'activity_id',
+										'value' => $entityBody->object->id
+									)
+								)
+							));
+							foreach ($share as $s) {
+								// delete share records from database
+								wp_delete_post($s->ID);
+							}
+						}
 					} elseif ($type == 'Like') {
+						$user = get_user_by('login', $username."@".$domain);
 						$params = array(
 							'post_type' => 'like',
+							'post_author' => $user->ID,
 							'post_content' => json_encode($entityBody),
 							'post_status' => 'publish',
 							'meta_input' => array(

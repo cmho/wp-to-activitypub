@@ -73,7 +73,9 @@
 		        return true;
 	        }
 	        return false;
-	      });
+        });
+        print_r($subs);
+        die(1);
         
         // replace newlines with \n because json doesn't like them
         $filtered_content = preg_replace('/\n/', '\n', get_the_content($post_id));
