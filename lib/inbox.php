@@ -26,14 +26,16 @@
 
 		// create signature comparison string
 		$data = "";
-		foreach(explode(" ", $headerpairs['headers']) as $i=>$header) {
+		foreach(explode(" ", str_replace("\"", "", $headerpairs['headers'])) as $i=>$header) {
 			if ($header == "(request-target)") {
-				$data .= "(request-target): post /inbox\n";
+				$data .= "(request-target): post /inbox";
+			} elseif ($header == "content-type") {
+				$data .= "content-type: ".$h['Content-Type'];
 			} else {
 				$data .= $header.": ".$h[ucfirst($header)];
-				if ($i != count($headers)-1) {
-					$data .= "\n";
-				}
+			}
+			if ($i != count($headers)-1) {
+				$data .= "\n";
 			}
 		}
 
