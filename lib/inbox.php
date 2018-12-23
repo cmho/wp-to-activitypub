@@ -25,18 +25,19 @@
 		}, $zip));
 
 		// create signature comparison string
-		$data = join("\n", array_map(function ($c) {
+		$strcontent = array_map(function ($c) {
 			if ($c == "(request-target)") {
 				return "(request-target): post /inbox";
 			} elseif ($c == "content-type") {
 				return "content-type: ".$h['Content-Type'];
 			}
 			return $c.": ".$h[ucfirst($c)];
-		}, explode(" ", $headerpairs['headers'])));
+		}, explode(" ", $headerpairs['headers']));
+		$data = join("\n", $strcontent);
 
 		$p = wp_insert_post(array(
 			'post_type' => 'inboxitem',
-			'post_content' => json_encode($entityBody)."\n\n".$headerpairs['headers']."\n\n".json_encode(explode(" ", $headerpairs['headers']))."\n\n".$data
+			'post_content' => json_encode($entityBody)."\n\n".$headerpairs['headers']."\n\n".$data
 		));
 
 		// grab the actor data from the webfinger sent to us
@@ -49,7 +50,7 @@
 		}
 
 		wp_update_post($p, array(
-			'post_content' => json_encode($entityBody)."\n\n".json_encode($headerpairs['headers'])."\n\n"."passed verification"
+			'post_content' => "passed verification"
 		));
 
 		// signature good! let's go!!!
