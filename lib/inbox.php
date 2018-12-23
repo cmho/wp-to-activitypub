@@ -11,12 +11,17 @@
 		// get actor contents
 		$entityBody = json_decode(file_get_contents('php://input'));
 
+		print_r($entityBody);
+
 		$type = $entityBody->type;
 		$a = $entityBody->actor;
+
+		print_r($a);
 
 		$zip = array_map(function($x) {
 			return explode("=", $x);
 		}, $sig);
+		print_r($zip);
 
 		$headerpairs = array_combine(array_map(function($y) {
 			return strtolower($y[0]);
