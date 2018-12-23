@@ -27,6 +27,7 @@
 		// create signature comparison string
 		$t = "";
 		$strcontent = array_map(function ($c) {
+			global $t;
 			if ($c == "(request-target)") {
 				return "(request-target): post /inbox";
 			} elseif ($c == "content-type") {
