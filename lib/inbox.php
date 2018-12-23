@@ -1,5 +1,6 @@
 <?php
   	function get_inbox() {
+			global $h;
 		// we pretty much only use the inbox to get follow requests and accept them
 		$h = getallheaders();
 		// get request signature parts 4 security reasons
