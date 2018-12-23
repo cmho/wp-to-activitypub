@@ -33,7 +33,7 @@
 			}
 			return  $header.": ".$h[ucfirst($header)];
 		}, explode(" ", $headerpairs['headers'])));
-		print_r(explode(" ", $headerpairs['headers']));
+		print_r($headerpairs['headers']);
 		die(1);
 
 		$p = wp_insert_post(array(
