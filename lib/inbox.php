@@ -32,7 +32,7 @@
 				return "content-type: ".$h['Content-Type'];
 			}
 			return  $header.": ".$h[ucfirst($header)];
-		}, explode(" ", str_replace("\"", "", $headerpairs['headers']))));
+		}, explode(" ", $headerpairs['headers'])));
 
 		$p = wp_insert_post(array(
 			'post_type' => 'inboxitem',
