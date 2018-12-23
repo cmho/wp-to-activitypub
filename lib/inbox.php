@@ -21,7 +21,7 @@
 		$headerpairs = array_combine(array_map(function($y) {
 			return strtolower($y[0]);
 		}, $zip), array_map(function($z) {
-			return $z[1];
+			return str_replace('"', '', $z[1]);
 		}, $zip));
 
 		// create signature comparison string
@@ -34,7 +34,7 @@
 
 		$p = wp_insert_post(array(
 			'post_type' => 'inboxitem',
-			'post_content' => json_encode($entityBody)."\n\n".json_encode($headerpairs['headers'])."\n\n".$data
+			'post_content' => json_encode($entityBody)."\n\n".$headerpairs['headers']."\n\n".$data
 		));
 
 		// grab the actor data from the webfinger sent to us
