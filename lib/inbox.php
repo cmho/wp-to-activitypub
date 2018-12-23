@@ -21,7 +21,7 @@
 		$headerpairs = array_combine(array_map(function($y) {
 			return $y[0];
 		}, $zip), array_map(function($z) {
-			return str_replace('"', '', $z[1]);
+			return $z[1];
 		}, $zip));
 
 		// create signature comparison string
