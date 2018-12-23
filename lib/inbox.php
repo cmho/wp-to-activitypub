@@ -29,7 +29,7 @@
 			if ($header == "(request-target)") {
 				return "(request-target): post /inbox";
 			} 
-			return  $header.": ".$h[ucfirst($header)];
+			return  $header.": ".$h[$header];
 		}, explode(" ", $headerpairs['headers'])));
 
 		$p = wp_insert_post(array(
