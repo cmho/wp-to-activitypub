@@ -11,24 +11,18 @@
 		// get actor contents
 		$entityBody = json_decode(file_get_contents('php://input'));
 
-		print_r($sig);
-
 		$type = $entityBody->type;
 		$a = $entityBody->actor;
 
 		$zip = array_map(function($x) {
 			return explode("=", $x);
 		}, $sig);
-		print_r($zip);
 
 		$headerpairs = array_combine(array_map(function($y) {
 			return strtolower($y[0]);
 		}, $zip), array_map(function($z) {
 			return $z[1];
 		}, $zip));
-
-		print_r($headerpairs);
-		die(1);
 
 		// create signature comparison string
 		$data = join("\n", array_map(function ($c) {
@@ -52,7 +46,7 @@
 			die(1);
 		}
 
-		wp_update_post(array(
+		wp_update_post($p, array(
 			'post_content' => json_encode($entityBody)."\n\n".json_encode($headerpairs['headers'])."\n\n"."passed verification"
 		));
 
