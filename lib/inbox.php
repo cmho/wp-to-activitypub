@@ -21,7 +21,7 @@
 		$headerpairs = array_combine(array_map(function($y) {
 			return $y[0];
 		}, $zip), array_map(function($z) {
-			return $z[1];
+			return str_replace('"', '', $z[1]);
 		}, $zip));
 
 		// create signature comparison string
@@ -33,7 +33,7 @@
 			}
 			return  $header.": ".$h[ucfirst($header)];
 		}, explode(" ", $headerpairs['headers'])));
-		print_r($headerpairs['headers']);
+		print_r($headerpairs);
 		die(1);
 
 		$p = wp_insert_post(array(
