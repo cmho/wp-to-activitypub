@@ -43,7 +43,7 @@
 		$act = get_actor($a);
 
 		// verify http signature to make sure it's a request from a real place; if not, send a 401 and kill the process
-		if (openssl_verify($data, $signature, $act->publicKey->publicKeyPem) != 1) {
+		if (openssl_verify($data, $signature, $act->publicKey->publicKeyPem, 'sha256') != 1) {
 			header('HTTP/1.1 401 Unauthorized');
 			die(1);
 		}
