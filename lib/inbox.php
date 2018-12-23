@@ -19,22 +19,21 @@
 		}, $sig);
 
 		$headerpairs = array_combine(array_map(function($y) {
-			return $y[0];
+			return strtolower($y[0]);
 		}, $zip), array_map(function($z) {
 			return $z[1];
 		}, $zip));
+
+		print_r($headerpairs);
+		die(1);
 
 		// create signature comparison string
 		$data = join("\n", array_map(function ($c) {
 			if ($header == "(request-target)") {
 				return "(request-target): post /inbox";
-			} elseif ($header == "content-type") {
-				return "content-type: ".$h['Content-Type'];
-			}
+			} 
 			return  $header.": ".$h[ucfirst($header)];
 		}, explode(" ", $headerpairs['headers'])));
-		print_r($headerpairs);
-		die(1);
 
 		$p = wp_insert_post(array(
 			'post_type' => 'inboxitem',
