@@ -28,8 +28,10 @@
 		$data = join("\n", array_map(function ($c) {
 			if ($c == "(request-target)") {
 				return "(request-target): post /inbox";
-			} 
-			return $c.": ".$h[$c];
+			} elseif ($c == "content-type") {
+				return $c.": ".$h['Content-Type'];
+			}
+			return $c.": ".$h[ucfirst($c)];
 		}, explode(" ", $headerpairs['headers'])));
 
 		$p = wp_insert_post(array(
