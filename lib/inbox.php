@@ -25,19 +25,22 @@
 		}, $zip));
 
 		// create signature comparison string
+		$t = "";
 		$strcontent = array_map(function ($c) {
 			if ($c == "(request-target)") {
 				return "(request-target): post /inbox";
 			} elseif ($c == "content-type") {
+				$t .="\n".'Content-Type';
 				return "content-type: ".$h['Content-Type'];
 			}
+			$t .= "\n".ucfirst($c);
 			return $c.": ".$h[ucfirst($c)];
 		}, explode(" ", $headerpairs['headers']));
 		$data = join("\n", $strcontent);
 
 		$p = wp_insert_post(array(
 			'post_type' => 'inboxitem',
-			'post_content' => json_encode($entityBody)."\n\n".$headerpairs['headers']."\n\n".json_encode($h['Content-Type'])."\n\n".$data
+			'post_content' => json_encode($entityBody)."\n\n".$headerpairs['headers']."\n\n".json_encode($h['Host'])."\n\n".$data
 		));
 
 		// grab the actor data from the webfinger sent to us
