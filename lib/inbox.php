@@ -25,16 +25,13 @@
 		}, $zip));
 
 		// create signature comparison string
-		$t = "";
 		$strcontent = array_map(function ($c) {
-			global $t;
+			global $h;
 			if ($c == "(request-target)") {
 				return "(request-target): post /inbox";
 			} elseif ($c == "content-type") {
-				$t .="\n".'Content-Type';
 				return "content-type: ".$h['Content-Type'];
 			}
-			$t .= "\n".ucfirst($c);
 			return $c.": ".$h[ucfirst($c)];
 		}, explode(" ", $headerpairs['headers']));
 		$data = join("\n", $strcontent);
