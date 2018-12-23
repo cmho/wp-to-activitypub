@@ -34,7 +34,7 @@
 			} else {
 				$data .= $header.": ".$h[ucfirst($header)];
 			}
-			if ($i != count($headers)-1) {
+			if ($i != count($headerpairs)-1) {
 				$data .= "\n";
 			}
 		}
