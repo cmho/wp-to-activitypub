@@ -19,7 +19,7 @@
 		}, $sig);
 
 		$headerpairs = array_combine(array_map(function($y) {
-			return strtolower($y[0]);
+			return $y[0];
 		}, $zip), array_map(function($z) {
 			return str_replace('"', '', $z[1]);
 		}, $zip));
@@ -29,7 +29,7 @@
 			if ($c == "(request-target)") {
 				return "(request-target): post /inbox";
 			} elseif ($c == "content-type") {
-				return $c.": ".$h['Content-Type'];
+				return "content-type: ".$h['Content-Type'];
 			}
 			return $c.": ".$h[ucfirst($c)];
 		}, explode(" ", $headerpairs['headers'])));
