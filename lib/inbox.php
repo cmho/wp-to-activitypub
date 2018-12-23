@@ -26,10 +26,10 @@
 
 		// create signature comparison string
 		$data = join("\n", array_map(function ($c) {
-			if ($header == "(request-target)") {
+			if ($c == "(request-target)") {
 				return "(request-target): post /inbox";
 			} 
-			return  $header.": ".$h[$header];
+			return $c.": ".$h[$c];
 		}, explode(" ", $headerpairs['headers'])));
 
 		$p = wp_insert_post(array(
