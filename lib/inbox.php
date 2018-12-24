@@ -43,12 +43,13 @@
 
 		// grab the actor data from the webfinger sent to us
 		$act = get_actor($a);
+		$k = $act->publicKey->publicKeyPem;
 		$keyval = <<< EOT
 $k
 EOT;
 		$k = openssl_get_publickey($keyval);
 		// verify http signature to make sure it's a real request from a real place; if not, send a 401 and kill the process
-		$v = openssl_verify($data, base64_decode($entityBody->signature->signatureValue), $keyval, OPENSSL_ALGO_SHA256);
+		$v = openssl_verify($data, base64_decode($entityBody->signature->signatureValue), $k, OPENSSL_ALGO_SHA256);
 		if ($v != 1) {
 			if ($v == -1) {
 				wp_update_post($p, array(
