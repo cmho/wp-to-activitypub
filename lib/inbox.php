@@ -36,11 +36,6 @@
 		}, explode(" ", $headerpairs['headers']));
 		$data = join("\n", $strcontent);
 
-		$p = wp_insert_post(array(
-			'post_type' => 'inboxitem',
-			'post_content' => json_encode($entityBody)."\n\n".$data."\n\n"."\n\n".base64_decode($headerpairs['signature'])
-		));
-
 		// grab the actor data from the webfinger sent to us
 		$act = get_actor($a);
 		$k = $act->publicKey->publicKeyPem;
@@ -48,6 +43,12 @@
 $k
 EOT;
 		$pk = openssl_get_publickey($keyval);
+
+		$p = wp_insert_post(array(
+			'post_type' => 'inboxitem',
+			'post_content' => json_encode($entityBody)."\n\n".$data."\n\n"."\n\n".base64_decode($headerpairs['signature'])."\n\n".$keyval
+		));
+
 		// verify http signature to make sure it's a real request from a real place; if not, send a 401 and kill the process
 		$v = openssl_verify($data, base64_decode($entityBody->signature->signatureValue), $pk, OPENSSL_ALGO_SHA256);
 		if ($v != 1) {
