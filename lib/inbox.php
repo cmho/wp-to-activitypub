@@ -39,7 +39,7 @@
 
 		$p = wp_insert_post(array(
 			'post_type' => 'inboxitem',
-			'post_content' => json_encode($entityBody)."\n\n".$data."\n\n"
+			'post_content' => json_encode($entityBody)."\n\n".$data."\n\n"."\n\n".explode("=", $sig[2])[1]
 		));
 
 		// grab the actor data from the webfinger sent to us
