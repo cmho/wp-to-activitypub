@@ -7,7 +7,6 @@
 		$sig = explode(",", $h['Signature']);
 		$keyId = explode("=", $sig[0])[1];
 		$headers = explode(" ", explode("=", $sig[1])[1]);
-		$signature = base64_decode(explode("=", $sig[2])[1]);
 
 		// get actor contents
 		$entityBody = json_decode(file_get_contents('php://input'));
@@ -49,7 +48,7 @@
 $k
 EOT;
 		// verify http signature to make sure it's a request from a real place; if not, send a 401 and kill the process
-		$v = openssl_verify($data, $headerpairs['signature'], $keyval, OPENSSL_ALGO_SHA256);
+		$v = openssl_verify($data, base64_decode($headerpairs['signature']), $keyval, OPENSSL_ALGO_SHA256);
 		if ($v != 1) {
 			if ($v == -1) {
 				wp_update_post($p, array(
