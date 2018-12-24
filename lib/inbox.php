@@ -13,7 +13,7 @@
 
 		$type = $entityBody->type;
 		$a = $entityBody->actor;
-
+		/*
 		$zip = array_map(function($x) {
 			return explode("=", $x);
 		}, $sig);
@@ -64,6 +64,7 @@ EOT;
 		wp_update_post($p, array(
 			'post_content' => "passed verification"
 		));
+		*/
 
 		// signature good! let's go!!!
 		if ($a) {
