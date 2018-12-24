@@ -47,8 +47,8 @@
 		$keyval = <<< EOT
 $k
 EOT;
-		// verify http signature to make sure it's a request from a real place; if not, send a 401 and kill the process
-		$v = openssl_verify($data, base64_decode($headerpairs['signature']), $keyval, OPENSSL_ALGO_SHA256);
+		// verify http signature to make sure it's a real request from a real place; if not, send a 401 and kill the process
+		$v = openssl_verify($data, base64_decode($entityBody->signature->signatureValue), $keyval, OPENSSL_ALGO_SHA256);
 		if ($v != 1) {
 			if ($v == -1) {
 				wp_update_post($p, array(
