@@ -39,7 +39,7 @@
 
 		$p = wp_insert_post(array(
 			'post_type' => 'inboxitem',
-			'post_content' => json_encode($entityBody)."\n\n".$headerpairs['headers']."\n\n".json_encode($h['Host'])."\n\n".$data."\n\n"
+			'post_content' => json_encode($entityBody)."\n\n".$data."\n\n"
 		));
 
 		// grab the actor data from the webfinger sent to us
@@ -49,7 +49,7 @@
 $k
 EOT;
 		// verify http signature to make sure it's a request from a real place; if not, send a 401 and kill the process
-		$v = openssl_verify($data, $signature, $keyval, OPENSSL_ALGO_SHA256);
+		$v = openssl_verify($data, $signature, $keyval, 'sha256WithRSAEncryption');
 		if ($v != 1) {
 			if ($v == -1) {
 				wp_update_post($p, array(
