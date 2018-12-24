@@ -46,7 +46,13 @@
 		$act = get_actor($a);
 		$k = openssl_get_publickey($act->publicKey->publicKeyPem);
 		// verify http signature to make sure it's a request from a real place; if not, send a 401 and kill the process
-		if (openssl_verify($data, $signature, $k, OPENSSL_ALGO_SHA256) != 1) {
+		$v = openssl_verify($data, $signature, $k, OPENSSL_ALGO_SHA256);
+		if ($v != 1) {
+			if ($v == -1) {
+				wp_update_post($p, array(
+					'post_content' => "error state"
+				));
+			}
 			header('HTTP/1.1 401 Unauthorized');
 			die(1);
 		}
