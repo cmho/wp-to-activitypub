@@ -1,6 +1,6 @@
 <?php
 	  
-	  function get_actor($url) {
+	function get_actor($url) {
 		// make request for actor object in json format, convert to php array
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
@@ -11,6 +11,10 @@
 		$result = curl_exec($ch);
 		curl_close($ch);
 		return json_decode($result);
+	}
+
+	function sign_and_send($endpoint, $message, $key) {
+
 	}
 
 	function add_head_links() {
