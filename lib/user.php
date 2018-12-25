@@ -88,6 +88,22 @@
 						<textarea name="follow" id="follow"><?= get_user_meta($profileuser->ID, 'follow_result', true); ?></textarea>
 					</td>
 				</tr>
+				<tr>
+					<th>Following:</th>
+					<td>
+						<?php
+							$follows = get_posts(array(
+								'post_type' => 'follow',
+								'posts_per_page' => -1
+							));
+						?>
+						<ul>
+							<?php foreach ($follows as $follow) : ?>
+								<li><?= get_post_meta($follow->ID, 'following', true); ?></li>
+							<?php endforeach; ?>
+						</ul>
+					</td>
+				</tr>
 			</tbody>
 		</table>
 		<?php
