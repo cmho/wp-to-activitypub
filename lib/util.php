@@ -16,14 +16,4 @@
 	function sign_and_send($endpoint, $message, $key) {
 
 	}
-
-	function add_head_links() {
-		if (is_author()) {
-			// if this is an author page, display the activity+json version as an alt link
-			$curauth = (get_query_var('author_name')) ? get_user_by('slug', get_query_var('author_name')) : get_userdata(get_query_var('author'));
-			?>
-			<link rel="alternate" type="application/activity+json" href="<?= get_bloginfo('url'); ?>/u/@<?= $curauth; ?>" />
-			<?php
-		}
-	}
-	add_action('wp_head', 'add_head_links');
+	
