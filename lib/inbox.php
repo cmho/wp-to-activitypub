@@ -68,14 +68,14 @@ EOT;
 		*/
 
 		// signature good! let's go!!!
-		if ($a) {
+		if ($act) {
 			$inbox  = $act->endpoints->sharedInbox;
+			
+			$domain = parse_url($act->id)['host'];
 			// cobble together the webfinger url from the preferred username and the host name
-			$username = $act->preferredUsername.'@'.parse_url($entityBody->id)['host'];
+			$username = $act->preferredUsername.'@'.$domain;
 			// get the username we're trying to follow on this site
 			$followobj = $entityBody->object;
-			
-			$domain = parse_url($entityBody->id)['host'];
 			
 			if (is_string($followobj)) {
 				// check if there's an account by that name
