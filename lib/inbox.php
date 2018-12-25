@@ -190,15 +190,13 @@ EOT;
 					preg_match('/'.get_option('wp_activitypub_global_name').'$/', $following, $globalmatches);
 					$key;
 					if ($follow_user) {
-						echo "1";
 						$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
 					} elseif (count($tagmatches) > 0) {
 						$key = trim(get_term_meta(get_term_by('slug', $tagmatches[1], 'post_tag')->term_id, 'privkey', true));
 					} elseif (count($catmatches) > 0) {
 						$key = trim(get_term_meta(get_term_by('slug', $catmatches[1], 'category')->term_id, 'privkey', true));
 					} elseif (count($globalmatches) > 0) {
-						$key = get_option('wp_activitypub_global_privkey');
-					} else {
+						$key = trim(get_option('wp_activitypub_global_privkey'));
 					}
 					$keyval = <<< EOT
 $key
