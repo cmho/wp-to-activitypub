@@ -101,7 +101,7 @@
 						?>
 						<ul>
 							<?php foreach ($follows as $follow) : ?>
-								<li><?= $follow ?></li>
+								<li><a href="<?= get_bloginfo('url'); ?>/u/@<?= $follow; ?>" target="_blank"><?= $follow ?></a></li>
 							<?php endforeach; ?>
 						</ul>
 					</td>
