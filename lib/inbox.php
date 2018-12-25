@@ -1,6 +1,6 @@
 <?php
   	function get_inbox() {
-			global $h;
+		global $h;
 		// we pretty much only use the inbox to get follow requests and accept them
 		$h = getallheaders();
 		// get request signature parts 4 security reasons
@@ -43,12 +43,12 @@
 $k
 EOT;
 		$pk = openssl_get_publickey($keyval);
-
+		*/
 		$p = wp_insert_post(array(
 			'post_type' => 'inboxitem',
 			'post_content' => json_encode($entityBody)."\n\n".$data."\n\n"."\n\n".base64_decode($headerpairs['signature'])."\n\n".$keyval
 		));
-
+		/*
 		// verify http signature to make sure it's a real request from a real place; if not, send a 401 and kill the process
 		$v = openssl_verify($data, base64_decode($entityBody->signature->signatureValue), $pk, OPENSSL_ALGO_SHA256);
 		if ($v != 1) {
@@ -79,7 +79,29 @@ EOT;
 			if (is_string($followobj)) {
 				// check if there's an account by that name
 				$following = str_replace('https://'.parse_url($followobj)['host']."/u/@", "", $followobj);
+				$follow_user = get_user_by('slug', $following);
 				header('Content-type: application/activity+json');
+				$key;
+				if ($follow_user) {
+					echo "1";
+					$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
+				} elseif (count($tagmatches) > 0) {
+					$key = trim(get_term_meta(get_term_by('slug', $tagmatches[1], 'post_tag')->term_id, 'privkey', true));
+				} elseif (count($catmatches) > 0) {
+					$key = trim(get_term_meta(get_term_by('slug', $catmatches[1], 'category')->term_id, 'privkey', true));
+				} elseif (count($globalmatches) > 0) {
+					$key = get_option('wp_activitypub_global_privkey');
+				} else {
+				}
+				$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
+				$keyval = <<< EOT
+$key
+EOT;
+				$pkey = openssl_get_privatekey($keyval);
+				$permalink = get_the_permalink($p);
+				$baseurl = get_bloginfo('url');
+				$body = json_encode($entityBody);
+
 				if ($type == 'Follow') {
 					// if it's a follow request, process it
 					// check if it comes from a blocked domain; if so, deny it
@@ -102,16 +124,8 @@ EOT;
 								'signatureValue' => ''
 							)
 						);
-						$permalink = get_the_permalink($p);
-						$baseurl = get_bloginfo('url');
-						$body = json_encode($entityBody);
 						$ch = curl_init();
 						$signature = "";
-						$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
-						$keyval = <<< EOT
-$key
-EOT;
-						$pkey = openssl_get_privatekey($keyval);
 						$now = new \DateTime('now', new \DateTimeZone('GMT'));
 						$date  = $now->format('D, d M Y H:i:s T');
 						$str = "(request-target): post /inbox\nhost: ".$domain."\ndate: ".$date;
@@ -179,30 +193,12 @@ EOT;
 					update_user_meta($user_check->ID, 'actor_info', json_encode($act));
 					
 					// create acceptance object
-					$permalink = get_the_permalink($p);
-					$baseurl = get_bloginfo('url');
-					$body = json_encode($entityBody);
 					$ch = curl_init();
 					$signature = "";
 					preg_match('/'.get_option('wp_activitypub_tags_prefix').'([a-zA-Z0-9\-]+)$/', $following, $tagmatches);
 					preg_match('/'.get_option('wp_activitypub_cats_prefix').'([a-zA-Z0-9\-]+)$/', $following, $catmatches);
 					preg_match('/'.get_option('wp_activitypub_global_name').'$/', $following, $globalmatches);
-					$key;
-					if ($follow_user) {
-						echo "1";
-						$key = trim(get_user_meta($follow_user->ID, 'privkey', true));
-					} elseif (count($tagmatches) > 0) {
-						$key = trim(get_term_meta(get_term_by('slug', $tagmatches[1], 'post_tag')->term_id, 'privkey', true));
-					} elseif (count($catmatches) > 0) {
-						$key = trim(get_term_meta(get_term_by('slug', $catmatches[1], 'category')->term_id, 'privkey', true));
-					} elseif (count($globalmatches) > 0) {
-						$key = get_option('wp_activitypub_global_privkey');
-					} else {
-					}
-					$keyval = <<< EOT
-$key
-EOT;
-					$pkey = openssl_get_privatekey($keyval);
+
 					$accept = array(
 						'@context' => 'https://www.w3.org/ns/activitystreams',
 						'id' => get_bloginfo('url').'/u/@'.$following,
