@@ -251,7 +251,7 @@ EOT;
 					$user = get_user_by('login', $username."@".$domain);
 					if ($entityBody->object->type == 'Follow') {
 						// if it's an unfollow request, process it
-						preg_match('/\/u\/@([a-zA-Z0-9_]+)/', $entityBody->object->object, $output_array);
+						preg_match('/\/u\/@([a-zA-Z0-9_]+)$/', $entityBody->object->object, $output_array);
 						$followuser = $output_array[1];
 						$follow = get_posts(array(
 							'post_author' => $user->ID,

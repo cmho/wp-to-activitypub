@@ -96,6 +96,7 @@
 								return get_post_meta($c->ID, 'following', true);
 							}, get_posts(array(
 								'post_type' => 'follow',
+								'post_author' => $profileuser->ID,
 								'posts_per_page' => -1
 							))));
 						?>
