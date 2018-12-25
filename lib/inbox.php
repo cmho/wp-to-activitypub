@@ -221,18 +221,22 @@ EOT;
 					$accept['signature']['signatureValue'] = $sig_encode;
 					$accept['signature']['date'] = $date;
 					$json_accept = json_encode($accept);
+					$headers = array(
+						'Signature: '.$sig_str,
+						'Date: '.$date,
+						'Host: '.$domain,
+						'Content-Type: application/activity+json'
+					);
 					curl_setopt_array($ch, array(
 						CURLOPT_URL => $inbox,
 						CURLOPT_RETURNTRANSFER => true,
 						CURLOPT_CUSTOMREQUEST => "POST",
 						CURLOPT_POST => 1,
 						CURLOPT_POSTFIELDS => $json_accept,
-						CURLOPT_HTTPHEADER => array(
-							'Signature: '.$sig_str,
-							'Date: '.$date,
-							'Host: '.$domain,
-							'Content-Type: application/activity+json'
-						),
+						CURLOPT_HTTPHEADER => $headers,
+					));
+					wp_update_post($p, array(
+						'post_content' => json_encode($accept)."\n\n".json_encode($headers)
 					));
 					$result = curl_exec($ch);
 					curl_close($ch);
