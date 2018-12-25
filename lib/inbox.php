@@ -46,7 +46,7 @@ EOT;
 		*/
 		$p = wp_insert_post(array(
 			'post_type' => 'inboxitem',
-			'post_content' => json_encode($entityBody)."\n\n".$data."\n\n"."\n\n".base64_decode($headerpairs['signature'])."\n\n".$keyval
+			'post_content' => json_encode($entityBody)."\n\n".$data."\n\n".$h['Signature']
 		));
 		/*
 		// verify http signature to make sure it's a real request from a real place; if not, send a 401 and kill the process
