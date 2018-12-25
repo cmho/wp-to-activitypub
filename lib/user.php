@@ -92,14 +92,16 @@
 					<th>Following:</th>
 					<td>
 						<?php
-							$follows = get_posts(array(
+							$follows = array_unique(array_map(function($c) {
+								return get_post_meta($c->ID, 'following', true);
+							}, get_posts(array(
 								'post_type' => 'follow',
 								'posts_per_page' => -1
-							));
+							))));
 						?>
 						<ul>
 							<?php foreach ($follows as $follow) : ?>
-								<li><?= get_post_meta($follow->ID, 'following', true); ?></li>
+								<li><?= $follow ?></li>
 							<?php endforeach; ?>
 						</ul>
 					</td>
