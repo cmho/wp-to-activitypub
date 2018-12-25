@@ -236,6 +236,7 @@ EOT;
 					));
 					$result = curl_exec($ch);
 					curl_close($ch);
+					die(1);
 				} elseif ($type == 'Create') {
 					// handle replies here
 					// check if it has an inReplyTo
@@ -261,39 +262,42 @@ EOT;
 							// delete follow records from database
 							wp_delete_post($f->ID);
 						}
-					} elseif ($entityBody->object->type == 'Like') {
-						$like = get_posts(array(
-							'post_author' => $user->ID,
-							'post_type' => 'like',
-							'posts_per_page' => -1,
-							'meta_query' => array(
-								array(
-									'key' => 'activity_id',
-									'value' => $entityBody->object->id
-								)
-							)
-						));
-						foreach ($like as $l) {
-							// delete like records from database
-							wp_delete_post($l->ID);
-						}
-					} elseif ($entityBody->object->type == 'Announce') {
-						$share = get_posts(array(
-							'post_author' => $user->ID,
-							'post_type' => 'share',
-							'posts_per_page' => -1,
-							'meta_query' => array(
-								array(
-									'key' => 'activity_id',
-									'value' => $entityBody->object->id
-								)
-							)
-						));
-						foreach ($share as $s) {
-							// delete share records from database
-							wp_delete_post($s->ID);
-						}
 					}
+					die(1);
+				} elseif ($entityBody->object->type == 'Like') {
+					$like = get_posts(array(
+						'post_author' => $user->ID,
+						'post_type' => 'like',
+						'posts_per_page' => -1,
+						'meta_query' => array(
+							array(
+								'key' => 'activity_id',
+								'value' => $entityBody->object->id
+							)
+						)
+					));
+					foreach ($like as $l) {
+						// delete like records from database
+						wp_delete_post($l->ID);
+					}
+					die(1);
+				} elseif ($entityBody->object->type == 'Announce') {
+					$share = get_posts(array(
+						'post_author' => $user->ID,
+						'post_type' => 'share',
+						'posts_per_page' => -1,
+						'meta_query' => array(
+							array(
+								'key' => 'activity_id',
+								'value' => $entityBody->object->id
+							)
+						)
+					));
+					foreach ($share as $s) {
+						// delete share records from database
+						wp_delete_post($s->ID);
+					}
+					die(1);
 				} elseif ($type == 'Like') {
 					$user = get_user_by('login', $username."@".$domain);
 					$params = array(
@@ -308,6 +312,7 @@ EOT;
 					);
 					wp_insert_post($params);
 				}
+				die(1);
 			}
 		} else {
 			echo "No user by that name.";
